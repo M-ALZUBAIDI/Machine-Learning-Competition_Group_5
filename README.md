@@ -1,3 +1,25 @@
+# NEO Hazard Predictor — Group 5
+
+Machine learning system that predicts whether a Near-Earth Object (NEO) is hazardous, 
+using NASA's NEO dataset for training and NASA's live NeoWs API for real-time predictions.
+
+## Project overview
+
+- **Problem**: Classify near-Earth asteroids as hazardous or non-hazardous based on their 
+  physical and orbital characteristics.
+- **Data**: [NASA NEO dataset](https://www.kaggle.com/datasets/sameepvani/nasa-nearest-earth-objects) (training), 
+  [NASA NeoWs API](https://api.nasa.gov/) (live data)
+- **Model**: Random Forest Classifier, tuned via GridSearchCV
+- **Features used**: `est_diameter_min`, `est_diameter_max`, `relative_velocity`, `miss_distance`, `absolute_magnitude`
+
+## Repo structure
+├── notebook/ # EDA, preprocessing, model training & evaluation
+├── model/ # Exported model, scaler, and feature order (.pkl files)
+├── api/ # FastAPI service — serves predictions, fetches live NASA data
+├── dashboard/ # Streamlit dashboard — consumes the API, displays results
+└── README.md
+
+
 ## Pipeline
 
 1. **EDA & preprocessing** — cleaned NASA NEO dataset, handled class imbalance with SMOTE
