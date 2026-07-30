@@ -55,12 +55,25 @@ def get_live_asteroids(start_date: str, end_date: str) -> list[dict]:
     """
     Fetches asteroids for a date range and returns a clean list of
     dicts, one per asteroid, with model-ready features.
+    Skips any asteroid that's missing close_approach_data instead of
+    crashing the whole request.
     """
     raw = fetch_neo_feed(start_date, end_date)
 
     asteroids = []
+    skipped = 0
     for date_key, objects in raw["near_earth_objects"].items():
         for obj in objects:
-            asteroids.append(extract_features(obj))
+            if not obj.get("close_approach_data"):
+                skipped += 1
+                continue
+            try:
+                asteroids.append(extract_features(obj))
+            except (KeyError, IndexError, TypeError):
+                skipped += 1
+                continue
+
+    if skipped:
+        print(f"Skipped {skipped} asteroid(s) with incomplete data")
 
     return asteroids
