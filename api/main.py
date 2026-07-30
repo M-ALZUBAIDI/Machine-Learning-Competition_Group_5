@@ -77,8 +77,11 @@ def predict_live(start_date: str = None, end_date: str = None):
 
     results = []
     for a in asteroids:
-        pred = predict_one(a)
-        results.append({**a, **pred})
+        try:
+            pred = predict_one(a)
+            results.append({**a, **pred})
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Prediction error on asteroid {a.get('id')}: {e}")
 
     # Most likely hazardous first
     results.sort(key=lambda r: r["hazard_probability"], reverse=True)
