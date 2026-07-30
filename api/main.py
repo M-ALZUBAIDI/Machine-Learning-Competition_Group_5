@@ -8,6 +8,7 @@ Endpoints:
 """
 
 from datetime import date, timedelta
+import traceback
 
 import joblib
 import numpy as np
@@ -81,7 +82,10 @@ def predict_live(start_date: str = None, end_date: str = None):
             pred = predict_one(a)
             results.append({**a, **pred})
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Prediction error on asteroid {a.get('id')}: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Prediction error on asteroid {a.get('id')}: {e} | features={a} | traceback={traceback.format_exc()}",
+            )
 
     # Most likely hazardous first
     results.sort(key=lambda r: r["hazard_probability"], reverse=True)
