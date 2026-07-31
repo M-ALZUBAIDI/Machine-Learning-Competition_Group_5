@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EDA — NEO Hazard Predictor</title>
+<meta name="description" content="Exploratory data analysis of NASA's near-Earth object dataset." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="wordmark">
+    <span class="dot"></span>
+    NEO HAZARD PREDICTOR
+  </div>
+  <nav class="tabs">
+    <a href="index.html">LIVE TRACKER</a>
+    <a href="eda.html" class="active">EDA</a>
+    <a href="results.html">MODEL RESULTS</a>
+    <a href="enhancements.html">ENHANCEMENTS</a>
+  </nav>
+  <a class="repo-link" href="https://github.com/M-ALZUBAIDI/Machine-Learning-Competition_Group_5" target="_blank" rel="noopener">SOURCE →</a>
+</header>
+
+<div class="page-hero">
+  <span class="eyebrow">EXPLORATORY DATA ANALYSIS</span>
+  <h1>What the raw catalog actually looks like.</h1>
+  <p class="page-sub">90,836 near-Earth objects from NASA's NEO catalog, examined before any model saw them — class balance, feature distributions, and what separates a hazardous object from a routine one.</p>
+</div>
+
+<main>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Dataset Overview</h2>
+      <span class="tag">SOURCE: NASA NEO CATALOG (KAGGLE)</span>
+    </div>
+    <div class="card-grid">
+      <div class="metric-card">
+        <span class="label">TOTAL RECORDS</span>
+        <span class="value">90,836</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">RAW COLUMNS</span>
+        <span class="value">10 <span style="font-size:14px; color:var(--muted);">→ 5 used</span></span>
+      </div>
+      <div class="metric-card">
+        <span class="label">MISSING VALUES</span>
+        <span class="value">0</span>
+        <span class="sub">no imputation required</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">DUPLICATE ROWS</span>
+        <span class="value">0</span>
+      </div>
+    </div>
+    <p class="note"><strong>id</strong> and <strong>name</strong> were dropped — they uniquely identify each object and carry no predictive signal. <strong>orbiting_body</strong> and <strong>sentry_object</strong> were dropped for near-zero variance (nearly every record shares one value). That leaves 5 numeric features: diameter (min/max), relative velocity, miss distance, and absolute magnitude.</p>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Class Balance</h2>
+      <span class="tag">TARGET: hazardous</span>
+    </div>
+    <div class="panel">
+      <div class="chart-bars">
+        <div class="chart-bar-col">
+          <div class="chart-bar" id="bar-safe" style="height:0%; background: var(--cyan);">
+            <span class="bar-label-top">81,996</span>
+          </div>
+          <span class="cat-label">NOT HAZARDOUS · 90.3%</span>
+        </div>
+        <div class="chart-bar-col">
+          <div class="chart-bar amber" id="bar-hazard" style="height:0%;">
+            <span class="bar-label-top">8,840</span>
+          </div>
+          <span class="cat-label">HAZARDOUS · 9.7%</span>
+        </div>
+      </div>
+    </div>
+    <p class="note">A severe class imbalance — roughly 9 non-hazardous objects for every 1 hazardous one. Left untreated, a model could score ~90% accuracy by predicting "not hazardous" every time while missing nearly all real threats. This is why <strong>SMOTE</strong> was applied to the training split only, synthesizing minority-class samples so the model actually learns what separates the two classes rather than just learning the imbalance.</p>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Feature Summary Statistics</h2>
+      <span class="tag">n = 90,836</span>
+    </div>
+    <div class="panel" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>FEATURE</th>
+            <th class="num">MEAN</th>
+            <th class="num">STD</th>
+            <th class="num">MIN</th>
+            <th class="num">MAX</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>est_diameter_min (km)</td>
+            <td class="num">0.127</td>
+            <td class="num">0.299</td>
+            <td class="num">0.0006</td>
+            <td class="num">37.89</td>
+          </tr>
+          <tr>
+            <td>est_diameter_max (km)</td>
+            <td class="num">0.285</td>
+            <td class="num">0.667</td>
+            <td class="num">0.0014</td>
+            <td class="num">84.73</td>
+          </tr>
+          <tr>
+            <td>relative_velocity (km/h)</td>
+            <td class="num">48,067</td>
+            <td class="num">25,293</td>
+            <td class="num">203</td>
+            <td class="num">236,990</td>
+          </tr>
+          <tr>
+            <td>miss_distance (km)</td>
+            <td class="num">37,066,548</td>
+            <td class="num">22,352,040</td>
+            <td class="num">6,746</td>
+            <td class="num">74,798,650</td>
+          </tr>
+          <tr>
+            <td>absolute_magnitude</td>
+            <td class="num">23.53</td>
+            <td class="num">2.89</td>
+            <td class="num">9.23</td>
+            <td class="num">33.20</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Wide spreads across the board — diameter alone ranges from 0.0006 km to nearly 85 km, a scale difference of five orders of magnitude. This is exactly why <strong>StandardScaler</strong> was applied before training: without it, features with naturally larger numeric ranges (like miss_distance in raw km) would dominate distance-sensitive models regardless of their actual predictive value.</p>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>What Separates Hazardous From Safe</h2>
+      <span class="tag">FROM VIOLIN / PAIR PLOTS</span>
+    </div>
+    <div class="panel">
+      <p class="note" style="margin-top:0;">Hazardous objects cluster at <strong>absolute_magnitude under ~22</strong> — meaning brighter, and therefore <strong>larger</strong>, objects. Size turns out to be the primary signal, with velocity and miss distance acting as secondary, supporting features rather than the main driver. This lines up with orbital mechanics intuition: a bigger object at a given distance simply poses more potential risk, which is exactly what the feature importance results (see Model Results) confirm numerically.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>MODEL: Random Forest (scikit-learn) · DATA: JPL SBDB Close-Approach API<br/>Built for Bootcamp Demo Day — Group 5</p>
+</footer>
+
+<script>
+  // Animate class-balance bars in on load
+  window.addEventListener('DOMContentLoaded', () => {
+    requestAnimationFrame(() => {
+      document.getElementById('bar-safe').style.height = '100%';
+      document.getElementById('bar-hazard').style.height = '11%';
+    });
+  });
+</script>
+
+</body>
+</html>
