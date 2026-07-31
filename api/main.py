@@ -13,11 +13,21 @@ import traceback
 import joblib
 import numpy as np
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from nasa_client import get_live_asteroids
 
 app = FastAPI(title="NEO Hazard Predictor API")
+
+# Allow the dashboard (hosted on Vercel) to call this API from the browser.
+# Wide open for demo purposes — tighten to your exact Vercel domain later if needed.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load model artifacts once at startup
 model = joblib.load("model/neo_model.pkl")
