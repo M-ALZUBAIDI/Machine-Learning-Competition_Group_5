@@ -9,8 +9,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 
 <style>
+  /* Page-specific overrides for the home hero — loaded after styles.css so these win */
   :root {
     --bg: #0A0E1A;
     --panel: #12182B;
@@ -369,13 +371,19 @@
   :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 </style>
 </head>
-<body>
+<body class="home">
 
 <header>
   <div class="wordmark">
     <span class="dot" id="live-dot"></span>
     NEO HAZARD PREDICTOR
   </div>
+  <nav class="tabs">
+    <a href="index.html" class="active">LIVE TRACKER</a>
+    <a href="eda.html">EDA</a>
+    <a href="results.html">MODEL RESULTS</a>
+    <a href="enhancements.html">ENHANCEMENTS</a>
+  </nav>
   <div class="status-text" id="header-status">ACQUIRING SIGNAL…</div>
   <a class="repo-link" href="https://github.com/M-ALZUBAIDI/Machine-Learning-Competition_Group_5" target="_blank" rel="noopener">SOURCE →</a>
 </header>
