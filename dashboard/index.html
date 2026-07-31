@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NEO Hazard Predictor — Live Tracking</title>
+<meta name="description" content="Live near-Earth object hazard predictions, powered by a Random Forest model and JPL close-approach data." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0A0E1A;
+    --panel: #12182B;
+    --panel-border: #1F2740;
+    --cyan: #4FD8EB;
+    --cyan-dim: #2A6B75;
+    --amber: #FF6B35;
+    --amber-dim: #7A3A1F;
+    --text: #E8EAF0;
+    --muted: #7A869E;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 32px;
+    background: linear-gradient(180deg, rgba(10,14,26,0.9) 0%, rgba(10,14,26,0) 100%);
+    pointer-events: none;
+  }
+
+  header * { pointer-events: auto; }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .wordmark .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .wordmark .dot.error { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .status-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .repo-link {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    border: 1px solid var(--panel-border);
+    padding: 6px 12px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .repo-link:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+
+  /* ---------- Hero / 3D scene ---------- */
+  #scene-wrap {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 640px;
+  }
+
+  #canvas-container { width: 100%; height: 100%; cursor: grab; }
+  #canvas-container:active { cursor: grabbing; }
+
+  .hero-copy {
+    position: absolute;
+    top: 96px;
+    left: 32px;
+    max-width: 420px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 14px;
+  }
+
+  .hero-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 28px;
+    left: 32px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    z-index: 10;
+    opacity: 0.7;
+  }
+
+  /* Stat strip, bottom-right of scene */
+  .stat-strip {
+    position: absolute;
+    bottom: 28px;
+    right: 32px;
+    z-index: 10;
+    display: flex;
+    gap: 24px;
+    background: rgba(18, 24, 43, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 16px 24px;
+  }
+
+  .stat { text-align: right; }
+  .stat .label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .stat .value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .stat .value.amber { color: var(--amber); }
+  .stat .value.cyan { color: var(--cyan); }
+
+  /* Scan sweep, single orchestrated load animation */
+  .scan-sweep {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(79,216,235,0.06) 45%, rgba(79,216,235,0.12) 50%, rgba(79,216,235,0.06) 55%, transparent 100%);
+    pointer-events: none;
+    z-index: 5;
+    animation: sweep 1.8s ease-out 1;
+  }
+  @keyframes sweep {
+    0% { transform: translateX(-100%); opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+  }
+
+  /* ---------- Manifest section ---------- */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 64px 32px 40px;
+  }
+
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 16px;
+  }
+
+  .section-head h2 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .section-head .window {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 7px; height: 7px; border-radius: 50%; }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  thead th.num { text-align: right; }
+
+  tbody tr {
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(31,39,64,0.5);
+  }
+  tbody tr:hover, tbody tr.active { background: rgba(79,216,235,0.06); }
+  tbody tr.active { background: rgba(79,216,235,0.1); }
+
+  tbody td {
+    padding: 12px;
+    font-size: 13px;
+  }
+  tbody td.num {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .designation {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+  .name-sub { color: var(--muted); font-size: 11px; }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .status-dot.hazard { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .status-dot.safe { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+
+  .prob-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .prob-bar-track {
+    width: 60px;
+    height: 4px;
+    background: var(--panel-border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .prob-bar-fill { height: 100%; border-radius: 2px; }
+  .prob-bar-fill.hazard { background: var(--amber); }
+  .prob-bar-fill.safe { background: var(--cyan); }
+
+  /* ---------- Loading / error states ---------- */
+  .state-panel {
+    text-align: center;
+    padding: 48px 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .state-panel .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--panel-border);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .retry-btn {
+    margin-top: 16px;
+    background: transparent;
+    border: 1px solid var(--amber-dim);
+    color: var(--amber);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 8px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+  }
+  .retry-btn:hover { border-color: var(--amber); }
+
+  /* ---------- Footer ---------- */
+  footer {
+    max-width: 1100px;
+    margin: 40px auto 0;
+    padding: 24px 32px 40px;
+    border-top: 1px solid var(--panel-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer p {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 720px) {
+    .hero-copy { max-width: 80%; }
+    .stat-strip { left: 32px; right: 32px; justify-content: space-between; }
+    thead th:nth-child(3), tbody td:nth-child(3) { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark">
+    <span class="dot" id="live-dot"></span>
+    NEO HAZARD PREDICTOR
+  </div>
+  <div class="status-text" id="header-status">ACQUIRING SIGNAL…</div>
+  <a class="repo-link" href="https://github.com/M-ALZUBAIDI/Machine-Learning-Competition_Group_5" target="_blank" rel="noopener">SOURCE →</a>
+</header>
+
+<div id="scene-wrap">
+  <div class="scan-sweep"></div>
+  <div id="canvas-container"></div>
+
+  <div class="hero-copy">
+    <span class="eyebrow">LIVE · JPL SMALL-BODY DATABASE</span>
+    <h1>Tracking what's passing close to home.</h1>
+    <p class="hero-sub">A Random Forest model trained on NASA's near-Earth object catalog, scoring every asteroid in this week's close-approach window for hazard risk — live, not archived.</p>
+  </div>
+
+  <p class="hint">drag to rotate · scroll to zoom · click a target in the manifest below</p>
+
+  <div class="stat-strip" id="stat-strip">
+    <div class="stat">
+      <span class="label">TRACKED</span>
+      <span class="value cyan" id="stat-total">—</span>
+    </div>
+    <div class="stat">
+      <span class="label">HAZARDOUS</span>
+      <span class="value amber" id="stat-hazard">—</span>
+    </div>
+    <div class="stat">
+      <span class="label">WINDOW</span>
+      <span class="value" id="stat-window" style="font-size:14px; padding-top:4px;">—</span>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="section-head">
+    <h2>Tracking Manifest</h2>
+    <span class="window" id="manifest-window">—</span>
+  </div>
+
+  <div class="legend">
+    <span><span class="swatch" style="background:var(--amber)"></span>Predicted hazardous</span>
+    <span><span class="swatch" style="background:var(--cyan)"></span>Predicted safe</span>
+  </div>
+
+  <div id="table-region">
+    <div class="state-panel" id="loading-state">
+      <div class="spinner"></div>
+      Establishing uplink to JPL / model API…
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p>MODEL: Random Forest (scikit-learn) · DATA: JPL SBDB Close-Approach API<br/>Built for Bootcamp Demo Day — Group 5</p>
+  <p id="footer-refresh">—</p>
+</footer>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============ CONFIG ============
+const API_BASE = 'https://nasa-nearest-earth-objects.onrender.com';
+
+// ============ THREE.JS SCENE ============
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+camera.position.set(0, 3.5, 11);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 5;
+controls.maxDistance = 24;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.35;
+
+// Starfield
+function makeStarfield() {
+  const count = 2200;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = 60 + Math.random() * 140;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const mat = new THREE.PointsMaterial({ color: 0xaab4cc, size: 0.06, transparent: true, opacity: 0.7 });
+  return new THREE.Points(geo, mat);
+}
+scene.add(makeStarfield());
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x304060, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(8, 4, 6);
+scene.add(sun);
+
+// Earth
+const earthGroup = new THREE.Group();
+scene.add(earthGroup);
+
+const earthGeo = new THREE.SphereGeometry(2, 64, 64);
+const earthMat = new THREE.MeshPhongMaterial({
+  color: 0x1a4d6e,
+  emissive: 0x0a1a2a,
+  shininess: 12,
+  specular: 0x3a6b8a,
+});
+const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+earthGroup.add(earthMesh);
+
+// Simple procedural "continents" via a second layer of noisy patches (canvas texture)
+function buildEarthTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#173f5c';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = '#2e8f6e';
+  for (let i = 0; i < 40; i++) {
+    const x = Math.random() * c.width;
+    const y = Math.random() * c.height;
+    const w = 20 + Math.random() * 70;
+    const h = 12 + Math.random() * 40;
+    ctx.beginPath();
+    ctx.ellipse(x, y, w, h, Math.random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  return new THREE.CanvasTexture(c);
+}
+earthMat.map = buildEarthTexture();
+earthMat.needsUpdate = true;
+
+// Atmosphere glow
+const glowGeo = new THREE.SphereGeometry(2.12, 64, 64);
+const glowMat = new THREE.MeshBasicMaterial({
+  color: 0x4fd8eb,
+  transparent: true,
+  opacity: 0.09,
+  side: THREE.BackSide,
+});
+earthGroup.add(new THREE.Mesh(glowGeo, glowMat));
+
+// Faint orbit rings (purely decorative, evokes tracking radii)
+[3.4, 4.6, 5.9].forEach(r => {
+  const ringGeo = new THREE.RingGeometry(r, r + 0.008, 128);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x2a6b75, transparent: true, opacity: 0.25, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+  ring.rotation.z = Math.random() * Math.PI;
+  scene.add(ring);
+});
+
+// ============ ASTEROID FIELD ============
+const asteroidGroup = new THREE.Group();
+scene.add(asteroidGroup);
+const asteroidMeshes = {}; // id -> {mesh, orbit params}
+
+function makeAsteroidGeometry(seed) {
+  const geo = new THREE.IcosahedronGeometry(1, 0);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const jitter = 0.18;
+    pos.setXYZ(
+      i,
+      pos.getX(i) * (1 + (Math.sin(i * seed) * jitter)),
+      pos.getY(i) * (1 + (Math.cos(i * seed * 1.3) * jitter)),
+      pos.getZ(i) * (1 + (Math.sin(i * seed * 0.7) * jitter))
+    );
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function buildAsteroids(asteroids) {
+  // Clear old
+  asteroidGroup.clear();
+  for (const key in asteroidMeshes) delete asteroidMeshes[key];
+
+  const maxDist = Math.max(...asteroids.map(a => a.miss_distance), 1);
+  const maxDia = Math.max(...asteroids.map(a => (a.est_diameter_min + a.est_diameter_max) / 2), 0.001);
+
+  asteroids.forEach((a, i) => {
+    const hazardous = a.hazardous;
+    const avgDia = (a.est_diameter_min + a.est_diameter_max) / 2;
+
+    // Orbit radius: closer real miss_distance -> tighter orbit (inverted + clamped)
+    const normDist = a.miss_distance / maxDist;
+    const radius = 3.2 + (1 - normDist) * 3.2 + (i % 5) * 0.15;
+
+    // Size: scaled from diameter, clamped so it's visible but not overwhelming
+    const size = clamp(0.06 + (avgDia / maxDia) * 0.22, 0.05, 0.3);
+
+    const color = hazardous ? 0xff6b35 : 0x4fd8eb;
+    const geo = makeAsteroidGeometry(i + 1);
+    const mat = new THREE.MeshStandardMaterial({
+      color, roughness: 0.7, metalness: 0.1,
+      emissive: color, emissiveIntensity: hazardous ? 0.35 : 0.18,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.scale.setScalar(size);
+
+    const angle = Math.random() * Math.PI * 2;
+    const inclination = (Math.random() - 0.5) * 1.1;
+    mesh.userData = { id: a.id, angle, radius, inclination, speed: 0.08 + Math.random() * 0.1, hazardous };
+
+    // Glow halo for hazardous ones
+    if (hazardous) {
+      const haloGeo = new THREE.SphereGeometry(1.8, 12, 12);
+      const haloMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.15 });
+      const halo = new THREE.Mesh(haloGeo, haloMat);
+      mesh.add(halo);
+    }
+
+    asteroidGroup.add(mesh);
+    asteroidMeshes[a.id] = mesh;
+  });
+}
+
+// Focus / highlight state
+let focusedId = null;
+let cameraTween = null;
+
+function focusAsteroid(id) {
+  focusedId = id;
+  const mesh = asteroidMeshes[id];
+  if (!mesh) return;
+
+  controls.autoRotate = false;
+  const targetPos = mesh.getWorldPosition(new THREE.Vector3());
+  const camDir = targetPos.clone().normalize();
+  const desiredCamPos = targetPos.clone().add(camDir.multiplyScalar(2.2)).add(new THREE.Vector3(0, 0.6, 0));
+
+  cameraTween = {
+    startPos: camera.position.clone(),
+    endPos: desiredCamPos,
+    startTarget: controls.target.clone(),
+    endTarget: targetPos.clone(),
+    t: 0,
+  };
+}
+
+function clearFocus() {
+  focusedId = null;
+  controls.autoRotate = true;
+}
+
+// ============ RENDER LOOP ============
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  earthMesh.rotation.y += dt * 0.05;
+
+  asteroidGroup.children.forEach(mesh => {
+    const { angle, radius, inclination, speed, id } = mesh.userData;
+    const a = angle + elapsed * speed;
+    mesh.position.set(
+      Math.cos(a) * radius,
+      Math.sin(a) * radius * inclination,
+      Math.sin(a) * radius
+    );
+    mesh.rotation.x += dt * 0.4;
+    mesh.rotation.y += dt * 0.3;
+
+    // pulse the focused asteroid
+    const isFocused = id === focusedId;
+    const targetScaleMul = isFocused ? 1.6 + Math.sin(elapsed * 6) * 0.15 : 1;
+    mesh.userData.baseScale = mesh.userData.baseScale || mesh.scale.x;
+  });
+
+  if (cameraTween) {
+    cameraTween.t += dt / 0.7;
+    const t = clamp(cameraTween.t, 0, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    camera.position.lerpVectors(cameraTween.startPos, cameraTween.endPos, ease);
+    controls.target.lerpVectors(cameraTween.startTarget, cameraTween.endTarget, ease);
+    if (t >= 1) cameraTween = null;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// Click on empty space clears focus
+renderer.domElement.addEventListener('dblclick', clearFocus);
+
+// ============ DATA FETCH + UI ============
+const liveDot = document.getElementById('live-dot');
+const headerStatus = document.getElementById('header-status');
+const tableRegion = document.getElementById('table-region');
+const statTotal = document.getElementById('stat-total');
+const statHazard = document.getElementById('stat-hazard');
+const statWindow = document.getElementById('stat-window');
+const manifestWindow = document.getElementById('manifest-window');
+const footerRefresh = document.getElementById('footer-refresh');
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function renderTable(asteroids) {
+  if (asteroids.length === 0) {
+    tableRegion.innerHTML = `<div class="state-panel">No close-approach objects in this window.</div>`;
+    return;
+  }
+
+  const rows = asteroids.map(a => {
+    const avgDia = ((a.est_diameter_min + a.est_diameter_max) / 2).toFixed(3);
+    const vel = Math.round(a.relative_velocity).toLocaleString();
+    const dist = Math.round(a.miss_distance / 1000).toLocaleString(); // km -> thousands
+    const prob = Math.round(a.hazard_probability * 100);
+    const cls = a.hazardous ? 'hazard' : 'safe';
+    return `
+      <tr data-id="${a.id}">
+        <td><span class="status-dot ${cls}"></span></td>
+        <td>
+          <div class="designation">${a.id}</div>
+          <div class="name-sub">${a.name || ''}</div>
+        </td>
+        <td class="num">${avgDia} km</td>
+        <td class="num">${vel} km/h</td>
+        <td class="num">${dist}k km</td>
+        <td class="num">
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-track"><div class="prob-bar-fill ${cls}" style="width:${prob}%"></div></div>
+            <span>${prob}%</span>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  tableRegion.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>DESIGNATION</th>
+          <th class="num">DIAMETER</th>
+          <th class="num">VELOCITY</th>
+          <th class="num">MISS DIST.</th>
+          <th class="num">HAZARD RISK</th>
+        </tr>
+      </thead>
+      <tbody id="manifest-body">${rows}</tbody>
+    </table>
+  `;
+
+  document.querySelectorAll('#manifest-body tr').forEach(row => {
+    row.addEventListener('click', () => {
+      document.querySelectorAll('#manifest-body tr').forEach(r => r.classList.remove('active'));
+      row.classList.add('active');
+      focusAsteroid(row.dataset.id);
+    });
+  });
+}
+
+async function loadData() {
+  headerStatus.textContent = 'ACQUIRING SIGNAL…';
+  liveDot.classList.remove('error');
+
+  try {
+    const res = await fetch(`${API_BASE}/predict/live`);
+    if (!res.ok) throw new Error(`API returned ${res.status}`);
+    const data = await res.json();
+    const asteroids = data.asteroids || [];
+    const hazardCount = asteroids.filter(a => a.hazardous).length;
+
+    statTotal.textContent = asteroids.length;
+    statHazard.textContent = hazardCount;
+    const windowText = `${fmtDate(data.start_date)} – ${fmtDate(data.end_date)}`;
+    statWindow.textContent = windowText;
+    manifestWindow.textContent = windowText.toUpperCase();
+
+    headerStatus.textContent = `LIVE · ${asteroids.length} OBJECTS TRACKED`;
+    footerRefresh.textContent = `LAST SYNC: ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+
+    buildAsteroids(asteroids);
+    renderTable(asteroids);
+  } catch (err) {
+    liveDot.classList.add('error');
+    headerStatus.textContent = 'SIGNAL LOST';
+    tableRegion.innerHTML = `
+      <div class="state-panel">
+        Uplink to the model API failed — it may be waking from idle (free-tier hosting sleeps after inactivity, first request can take up to a minute).
+        <br/><br/>
+        <button class="retry-btn" id="retry-btn">RETRY UPLINK</button>
+      </div>`;
+    document.getElementById('retry-btn').addEventListener('click', loadData);
+  }
+}
+
+loadData();
+</script>
+
+</body>
+</html>
