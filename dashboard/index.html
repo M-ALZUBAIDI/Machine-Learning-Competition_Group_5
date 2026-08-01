@@ -147,15 +147,6 @@
   .switch input:checked + .slider::before { transform: translateX(16px); }
   #live-dot.test { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
 
-  .manifest-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin: -8px 0 18px;
-  }
-  .week-nav { display: flex; gap: 8px; }
   .ctrl-btn {
     background: transparent;
     border: 1px solid var(--panel-border);
@@ -450,7 +441,7 @@
 <header>
   <div class="wordmark">
     <span class="dot" id="live-dot"></span>
-    NEO HAZARD PREDICTOR
+    HAZARD PREDICTOR
   </div>
   <nav class="tabs">
     <a href="index.html" class="active">LIVE TRACKER</a>
@@ -460,7 +451,7 @@
     <a href="enhancements.html">04 ENHANCEMENTS</a>
     <a href="about.html">ABOUT</a>
   </nav>
-  <div class="status-text" id="header-status">ACQUIRING SIGNAL…</div>
+  <div class="status-text" id="header-status" style="display:none;">ACQUIRING SIGNAL…</div>
   <label class="data-toggle-wrap">
     <span class="data-toggle-label off active" id="label-live">LIVE</span>
     <span class="switch">
@@ -477,9 +468,8 @@
   <div id="canvas-container"></div>
 
   <div class="hero-copy">
-    <span class="eyebrow">LIVE · JPL SMALL-BODY DATABASE</span>
-    <h1>Tracking what's passing close to home.</h1>
-    <p class="hero-sub">A Random Forest model trained on NASA's near-Earth object catalog, scoring every asteroid in this week's close-approach window for hazard risk — live, not archived.</p>
+    <h1>Tracking what's passing close to Earth.</h1>
+    <p class="hero-sub">A Random Forest model trained on NASA's near-Earth object catalog, scoring every close approach for hazard risk.</p>
   </div>
 
   <p class="hint">drag to rotate · scroll to zoom · click a target in the manifest below</p>
@@ -503,15 +493,6 @@
 <main>
   <div class="section-head">
     <h2>Tracking Manifest</h2>
-    <span class="window" id="manifest-window">—</span>
-  </div>
-
-  <div class="manifest-controls">
-    <div class="week-nav">
-      <button class="ctrl-btn" id="prev-week-btn" title="Previous 7-day window">◀ PREV WEEK</button>
-      <button class="ctrl-btn" id="next-week-btn" title="Next 7-day window">NEXT WEEK ▶</button>
-    </div>
-    <button class="ctrl-btn cyan" id="export-csv-btn">⬇ EXPORT CSV</button>
   </div>
 
   <div class="legend">
@@ -530,7 +511,7 @@
     <h2>Global Approach Map</h2>
     <span class="tag">SIMULATED POSITIONS</span>
   </div>
-  <p class="note" style="margin-top:0; margin-bottom: 20px;">Asteroids don't have real ground coordinates — miss distance is measured in 3D space from Earth's center, not a point on the surface. Marker positions below are <strong>illustrative placement</strong>, deterministic per object, for visual scale and color context only — not real locations.</p>
+  <p class="note" style="margin-top:0; margin-bottom: 20px;">Asteroids don't have real ground locations — miss distance is a 3D distance from Earth, not a point on a map. Positions below are <strong>illustrative placement</strong>, not real coordinates.</p>
 
   <div id="map-container"></div>
 </main>
@@ -961,7 +942,6 @@ const tableRegion = document.getElementById('table-region');
 const statTotal = document.getElementById('stat-total');
 const statHazard = document.getElementById('stat-hazard');
 const statWindow = document.getElementById('stat-window');
-const manifestWindow = document.getElementById('manifest-window');
 const footerRefresh = document.getElementById('footer-refresh');
 
 function fmtDate(iso) {
@@ -975,14 +955,16 @@ function renderTable(asteroids) {
     return;
   }
 
-  const rows = asteroids.map(a => {
+  const VISIBLE_COUNT = 10;
+
+  const rowHtml = (a, hidden) => {
     const avgDia = ((a.est_diameter_min + a.est_diameter_max) / 2).toFixed(3);
     const vel = Math.round(a.relative_velocity).toLocaleString();
     const dist = Math.round(a.miss_distance / 1000).toLocaleString(); // km -> thousands
     const prob = Math.round(a.hazard_probability * 100);
     const cls = a.hazardous ? 'hazard' : 'safe';
     return `
-      <tr data-id="${a.id}">
+      <tr data-id="${a.id}"${hidden ? ' class="extra-row" style="display:none;"' : ''}>
         <td><span class="status-dot ${cls}"></span></td>
         <td>
           <div class="designation">${a.id}</div>
@@ -998,7 +980,10 @@ function renderTable(asteroids) {
           </div>
         </td>
       </tr>`;
-  }).join('');
+  };
+
+  const rows = asteroids.map((a, i) => rowHtml(a, i >= VISIBLE_COUNT)).join('');
+  const remaining = asteroids.length - VISIBLE_COUNT;
 
   tableRegion.innerHTML = `
     <table>
@@ -1014,11 +999,20 @@ function renderTable(asteroids) {
       </thead>
       <tbody id="manifest-body">${rows}</tbody>
     </table>
+    ${remaining > 0 ? `<div style="text-align:center; padding:16px 0 4px;"><button class="ctrl-btn cyan" id="show-more-btn">SHOW ${remaining} MORE ▾</button></div>` : ''}
   `;
 
   document.querySelectorAll('#manifest-body tr').forEach(row => {
     row.addEventListener('click', () => selectAsteroid(row.dataset.id));
   });
+
+  const showMoreBtn = document.getElementById('show-more-btn');
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener('click', () => {
+      document.querySelectorAll('#manifest-body tr.extra-row').forEach(r => r.style.display = '');
+      showMoreBtn.parentElement.remove();
+    });
+  }
 }
 
 function hashString(str) {
@@ -1094,9 +1088,8 @@ function applyDataset(data, isTest) {
 
   statTotal.textContent = asteroids.length;
   statHazard.textContent = hazardCount;
-  const windowText = `${fmtDate(data.start_date)} – ${fmtDate(data.end_date)}`;
+  const windowText = fmtDate(data.start_date);
   statWindow.textContent = windowText;
-  manifestWindow.textContent = windowText.toUpperCase() + (isTest ? ' (TEST DATA)' : '');
 
   headerStatus.textContent = isTest
     ? `TEST DATA · ${asteroids.length} SAMPLE OBJECTS`
@@ -1110,23 +1103,9 @@ function applyDataset(data, isTest) {
   renderMap(asteroids);
 }
 
-// ---------- Time-travel ----------
-let weekOffset = 0; // in units of 7-day windows, relative to today
-
-function computeDateRange(offset) {
-  const start = new Date();
-  start.setDate(start.getDate() + offset * 7);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  const iso = d => d.toISOString().split('T')[0];
-  return [iso(start), iso(end)];
-}
-
 async function loadData() {
   liveDot.classList.remove('error');
   liveDot.classList.toggle('test', dataMode === 'test');
-  prevWeekBtn.disabled = dataMode === 'test';
-  nextWeekBtn.disabled = dataMode === 'test';
 
   if (dataMode === 'test') {
     headerStatus.textContent = 'LOADING TEST DATA…';
@@ -1137,8 +1116,7 @@ async function loadData() {
   headerStatus.textContent = 'ACQUIRING SIGNAL…';
 
   try {
-    const [startDate, endDate] = computeDateRange(weekOffset);
-    const res = await fetch(`${API_BASE}/predict/live?start_date=${startDate}&end_date=${endDate}`);
+    const res = await fetch(`${API_BASE}/predict/live`);
     if (!res.ok) throw new Error(`API returned ${res.status}`);
     const data = await res.json();
     applyDataset(data, false);
@@ -1162,32 +1140,6 @@ async function loadData() {
     });
   }
 }
-
-const prevWeekBtn = document.getElementById('prev-week-btn');
-const nextWeekBtn = document.getElementById('next-week-btn');
-prevWeekBtn.addEventListener('click', () => { weekOffset -= 1; loadData(); });
-nextWeekBtn.addEventListener('click', () => { weekOffset += 1; loadData(); });
-
-// ---------- CSV export ----------
-document.getElementById('export-csv-btn').addEventListener('click', () => {
-  if (!currentAsteroids.length) return;
-  const headers = ['id', 'name', 'est_diameter_min_km', 'est_diameter_max_km', 'relative_velocity_kmh', 'miss_distance_km', 'absolute_magnitude', 'close_approach_date', 'hazardous', 'hazard_probability'];
-  const rows = currentAsteroids.map(a => headers.map(h => {
-    const v = a[h] ?? '';
-    const s = String(v).replace(/"/g, '""');
-    return /[,"\n]/.test(s) ? `"${s}"` : s;
-  }).join(','));
-  const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `neo-manifest-${new Date().toISOString().split('T')[0]}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
 
 // ---------- Keyboard shortcuts ----------
 document.addEventListener('keydown', (e) => {
