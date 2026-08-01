@@ -11,6 +11,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <style>
   /* Page-specific overrides for the home hero — loaded after styles.css so these win */
   :root {
@@ -436,15 +439,12 @@
   </div>
 
   <div class="section-head" style="margin-top: 56px;">
-    <h2>Proximity Radar</h2>
-    <span class="tag">MISS DISTANCE · SCALED, NOT GEOGRAPHIC</span>
+    <h2>Global Approach Map</h2>
+    <span class="tag">SIMULATED POSITIONS</span>
   </div>
-  <p class="note" style="margin-top:0; margin-bottom: 20px;">Each blip's <strong>distance from center</strong> is real — scaled from the object's actual miss distance. Angle is for spacing/readability only; asteroids don't have a compass bearing, so this isn't a map, it's a radar.</p>
+  <p class="note" style="margin-top:0; margin-bottom: 20px;">Asteroids don't have real ground coordinates — miss distance is measured in 3D space from Earth's center, not a point on the surface. Marker positions below are <strong>illustrative placement</strong>, deterministic per object, for visual scale and color context only — not real locations.</p>
 
-  <div class="radar-wrap" id="radar-wrap">
-    <div class="radar-sweep"></div>
-    <svg id="radar-svg" viewBox="0 0 400 400"></svg>
-  </div>
+  <div id="map-container"></div>
 </main>
 
 <footer>
@@ -897,52 +897,68 @@ function renderTable(asteroids) {
   });
 }
 
-function selectAsteroid(id) {
-  document.querySelectorAll('#manifest-body tr').forEach(r => r.classList.toggle('active', r.dataset.id === id));
-  document.querySelectorAll('.radar-blip').forEach(b => b.classList.toggle('active', b.dataset.id === id));
-  focusAsteroid(id);
+function hashString(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
 }
 
-const radarSvg = document.getElementById('radar-svg');
+// Deterministic "simulated" position per asteroid — not real geography,
+// but stable across reloads so the same object always lands in the same spot.
+function simulatedLatLon(id) {
+  const h1 = hashString(id);
+  const h2 = hashString(id + '_lon');
+  const lat = ((h1 % 10000) / 10000) * 130 - 60;   // -60 .. 70
+  const lon = ((h2 % 10000) / 10000) * 340 - 170;  // -170 .. 170
+  return [lat, lon];
+}
 
-function renderRadar(asteroids) {
-  if (!asteroids.length) { radarSvg.innerHTML = ''; return; }
+const map = L.map('map-container', { worldCopyJump: true, minZoom: 1.5, maxZoom: 8 }).setView([15, 20], 2);
 
-  const cx = 200, cy = 200, maxR = 170;
-  const maxDist = Math.max(...asteroids.map(a => a.miss_distance), 1);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+const markersLayer = L.layerGroup().addTo(map);
+const markerRefs = {}; // id -> Leaflet marker
+
+function renderMap(asteroids) {
+  markersLayer.clearLayers();
+  for (const k in markerRefs) delete markerRefs[k];
+  if (!asteroids.length) return;
+
   const maxDia = Math.max(...asteroids.map(a => (a.est_diameter_min + a.est_diameter_max) / 2), 0.001);
 
-  let svg = '';
-  svg += `<line class="radar-crosshair" x1="${cx}" y1="20" x2="${cx}" y2="380" />`;
-  svg += `<line class="radar-crosshair" x1="20" y1="${cy}" x2="380" y2="${cy}" />`;
-
-  [0.33, 0.66, 1.0].forEach(f => {
-    const r = maxR * f;
-    svg += `<circle class="radar-ring" cx="${cx}" cy="${cy}" r="${r}" />`;
-    const labelKm = Math.round((maxDist * f) / 1e6);
-    svg += `<text class="radar-ring-label" x="${cx + 4}" y="${cy - r - 3}">${labelKm}M km</text>`;
-  });
-
-  svg += `<circle class="radar-center" cx="${cx}" cy="${cy}" r="3" />`;
-
-  asteroids.forEach((a, i) => {
-    const dist = clamp(a.miss_distance / maxDist, 0.06, 1) * maxR;
-    const angle = i * 137.508 * (Math.PI / 180);
-    const x = cx + Math.cos(angle) * dist;
-    const y = cy + Math.sin(angle) * dist;
+  asteroids.forEach(a => {
+    const [lat, lon] = simulatedLatLon(a.id);
     const avgDia = (a.est_diameter_min + a.est_diameter_max) / 2;
-    const size = clamp(2 + (avgDia / maxDia) * 6, 2, 9);
+    const size = clamp(4 + (avgDia / maxDia) * 10, 4, 14);
     const color = a.hazardous ? '#FF6B35' : '#4FD8EB';
-    svg += `<g class="radar-blip" data-id="${a.id}">
-      <circle class="radar-blip-ring" cx="${x}" cy="${y}" r="4" stroke="${color}" />
-      <circle cx="${x}" cy="${y}" r="${size}" fill="${color}" />
-    </g>`;
-  });
+    const prob = Math.round(a.hazard_probability * 100);
 
-  radarSvg.innerHTML = svg;
-  radarSvg.querySelectorAll('.radar-blip').forEach(el => {
-    el.addEventListener('click', () => selectAsteroid(el.dataset.id));
+    const marker = L.circleMarker([lat, lon], {
+      radius: size, fillColor: color, color, weight: 1.5, fillOpacity: 0.75,
+    }).addTo(markersLayer);
+
+    marker.bindPopup(
+      `<strong>${a.id}</strong><br/>${a.name || ''}<br/>Hazard risk: ${prob}%<br/>` +
+      `<span style="color:#7A869E; font-size:9px;">(simulated position)</span>`
+    );
+    marker.on('click', () => selectAsteroid(a.id));
+    markerRefs[a.id] = marker;
   });
+}
+
+function selectAsteroid(id) {
+  document.querySelectorAll('#manifest-body tr').forEach(r => r.classList.toggle('active', r.dataset.id === id));
+  const marker = markerRefs[id];
+  if (marker) {
+    marker.openPopup();
+    map.panTo(marker.getLatLng());
+  }
+  focusAsteroid(id);
 }
 
 async function loadData() {
@@ -967,7 +983,7 @@ async function loadData() {
 
     buildAsteroids(asteroids);
     renderTable(asteroids);
-    renderRadar(asteroids);
+    renderMap(asteroids);
   } catch (err) {
     liveDot.classList.add('error');
     headerStatus.textContent = 'SIGNAL LOST';
