@@ -24,6 +24,7 @@
     <a href="imbalance.html">02 IMBALANCE</a>
     <a href="results.html">03 RESULTS</a>
     <a href="enhancements.html" class="active">04 ENHANCEMENTS</a>
+    <a href="about.html">ABOUT</a>
   </nav>
   <a class="repo-link" href="https://github.com/M-ALZUBAIDI/Machine-Learning-Competition_Group_5" target="_blank" rel="noopener">SOURCE →</a>
 </header>
@@ -147,7 +148,25 @@
 
 <footer>
   <p>MODEL: Random Forest (scikit-learn) · DATA: JPL SBDB Close-Approach API<br/>Built for Bootcamp Demo Day — Group 5</p>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <img src="assets/qr-code.png" alt="QR code linking to the live dashboard" style="width:44px; height:44px; border-radius:4px;" />
+    <span style="font-family:var(--font-mono); font-size:9px; color:var(--muted);">SCAN TO<br/>OPEN LIVE</span>
+  </div>
 </footer>
+
+<div class="shortcuts-hint">← → navigate chapters</div>
+
+<script>
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+      const el = document.querySelector('.chapter-link.prev');
+      if (el) window.location.href = el.href;
+    } else if (e.key === 'ArrowRight') {
+      const el = document.querySelector('.chapter-link.next');
+      if (el) window.location.href = el.href;
+    }
+  });
+</script>
 
 </body>
 </html>
