@@ -40,7 +40,6 @@
   <section class="block">
     <div class="section-head">
       <h2>Architecture</h2>
-      <span class="tag">GITHUB · RENDER · VERCEL · JPL</span>
     </div>
     <div class="panel" style="overflow-x:auto;">
       <svg viewBox="0 0 900 340" style="width:100%; min-width:640px; height:auto; display:block;" xmlns="http://www.w3.org/2000/svg">
@@ -110,7 +109,7 @@
         </g>
       </svg>
     </div>
-    <p class="note">Training happens once, offline, in Colab. From there, GitHub is the single source of truth that both Render (the prediction API) and Vercel (this dashboard) deploy from independently. At runtime, the dashboard never talks to the model directly — it calls Render over HTTP, exactly like any external client would, which is what proves the API genuinely works standalone.</p>
+    <p class="note">Training happens once, offline, in <strong>Colab</strong>. <strong>GitHub</strong> holds the result and feeds two independent deployments: <strong>Render</strong> runs the prediction API, <strong>Vercel</strong> runs this dashboard. The dashboard never touches the model directly — it calls Render over plain HTTP, the same way any outside app would, which is what proves the API genuinely works on its own.</p>
   </section>
 
   <section class="block">
@@ -118,34 +117,38 @@
       <h2>Team</h2>
       <span class="tag">GROUP 5</span>
     </div>
-    <div class="card-grid">
-      <div class="metric-card">
-        <span class="label">MOHAMMED</span>
-        <span class="value" style="font-size:14px; color:var(--text);">Deployment &amp; Live Data</span>
-        <span class="sub">FastAPI · Render · Vercel · JPL integration</span>
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="team-avatar">NO</div>
+        <div class="team-name">Norah</div>
+        <div class="team-role">Exploratory Data Analysis</div>
+        <span class="team-linkedin tbd">LinkedIn — TBD</span>
       </div>
-      <div class="metric-card">
-        <span class="label">[NAME]</span>
-        <span class="value" style="font-size:14px; color:var(--text);">[Role]</span>
-        <span class="sub">[What they worked on]</span>
+      <div class="team-card">
+        <div class="team-avatar">NA</div>
+        <div class="team-name">Nawaf</div>
+        <div class="team-role">Imbalanced Data · SMOTE</div>
+        <span class="team-linkedin tbd">LinkedIn — TBD</span>
       </div>
-      <div class="metric-card">
-        <span class="label">[NAME]</span>
-        <span class="value" style="font-size:14px; color:var(--text);">[Role]</span>
-        <span class="sub">[What they worked on]</span>
+      <div class="team-card">
+        <div class="team-avatar">YA</div>
+        <div class="team-name">Yasser</div>
+        <div class="team-role">Model Training</div>
+        <span class="team-linkedin tbd">LinkedIn — TBD</span>
       </div>
-      <div class="metric-card">
-        <span class="label">[NAME]</span>
-        <span class="value" style="font-size:14px; color:var(--text);">[Role]</span>
-        <span class="sub">[What they worked on]</span>
+      <div class="team-card">
+        <div class="team-avatar">SA</div>
+        <div class="team-name">Sarah</div>
+        <div class="team-role">Enhancements · Tuning</div>
+        <span class="team-linkedin tbd">LinkedIn — TBD</span>
       </div>
-      <div class="metric-card">
-        <span class="label">[NAME]</span>
-        <span class="value" style="font-size:14px; color:var(--text);">[Role]</span>
-        <span class="sub">[What they worked on]</span>
+      <div class="team-card">
+        <div class="team-avatar">MO</div>
+        <div class="team-name">Mohammed</div>
+        <div class="team-role">Deployment · Live Data</div>
+        <a class="team-linkedin" href="https://www.linkedin.com/in/m-a-alzubaidi/" target="_blank" rel="noopener">LinkedIn ↗</a>
       </div>
     </div>
-    <p class="note">Fill in your teammates' names and roles above — swap the <code>[NAME]</code> / <code>[Role]</code> placeholders in <code>about.html</code>.</p>
   </section>
 
   <section class="block">
@@ -172,6 +175,71 @@
 </footer>
 
 <style>
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+  }
+  .team-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 26px 18px;
+    text-align: center;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .team-card:hover { border-color: var(--cyan-dim); transform: translateY(-3px); }
+  .team-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(79,216,235,0.18), rgba(79,216,235,0.03));
+    border: 1px solid var(--cyan-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--cyan);
+    margin: 0 auto 14px;
+  }
+  .team-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .team-role {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+    line-height: 1.5;
+    min-height: 28px;
+  }
+  .team-linkedin {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    color: var(--cyan);
+    border: 1px solid var(--cyan-dim);
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  .team-linkedin:hover { background: rgba(79,216,235,0.08); }
+  .team-linkedin.tbd {
+    color: var(--muted);
+    border-color: var(--panel-border);
+    cursor: default;
+  }
+  .team-linkedin.tbd:hover { background: none; }
   .arch-box {
     fill: var(--panel);
     stroke: var(--panel-border);
