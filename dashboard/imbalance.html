@@ -24,6 +24,7 @@
     <a href="imbalance.html" class="active">02 IMBALANCE</a>
     <a href="results.html">03 RESULTS</a>
     <a href="enhancements.html">04 ENHANCEMENTS</a>
+    <a href="about.html">ABOUT</a>
   </nav>
   <a class="repo-link" href="https://github.com/M-ALZUBAIDI/Machine-Learning-Competition_Group_5" target="_blank" rel="noopener">SOURCE →</a>
 </header>
@@ -55,9 +56,9 @@
     </div>
     <div class="panel">
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 32px;" id="before-after-grid">
-        <div>
+        <div style="text-align:center;">
           <p style="font-family:var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:0.08em; margin-bottom:16px;">BEFORE — 72,668 training samples</p>
-          <div class="chart-bars" style="height:160px;">
+          <div class="chart-bars" style="height:160px; justify-content:center;">
             <div class="chart-bar-col">
               <div class="chart-bar" id="ba-safe-before" style="height:0%;"><span class="bar-label-top">65,596</span></div>
               <span class="cat-label">SAFE</span>
@@ -68,11 +69,11 @@
             </div>
           </div>
         </div>
-        <div>
+        <div style="text-align:center;">
           <p style="font-family:var(--font-mono); font-size:11px; color:var(--cyan); letter-spacing:0.08em; margin-bottom:16px;">AFTER — 131,192 training samples</p>
-          <div class="chart-bars" style="height:160px;">
+          <div class="chart-bars" style="height:160px; justify-content:center;">
             <div class="chart-bar-col">
-              <div class="chart-bar" id="ba-safe-after" style="height:0%;"><span class="bar-label-top">65,596</span></div>
+              <div class="chart-bar" id="ba-safe-after" style="height:0%;"><span class="bar-label-top" style="left:60%;">65,596</span></div>
               <span class="cat-label">SAFE</span>
             </div>
             <div class="chart-bar-col">
@@ -103,7 +104,7 @@
         <span class="sub">real-world distribution</span>
       </div>
     </div>
-    <p class="note">SMOTE was fit and applied <strong>only to the training split</strong>, after the train/test split was already made. The test set kept its original, real-world imbalance (16,400 safe vs. 1,768 hazardous) so that every accuracy, precision, and recall number reported on the Results page reflects genuine performance on realistic data — not performance inflated by evaluating against artificially balanced, partly-synthetic samples.</p>
+    <p class="note">We only balanced the <strong>training data</strong>. The test set was left exactly as-is — real, imbalanced, untouched — so every result on the Results page reflects genuine performance, not an inflated score from testing on artificial data.</p>
   </section>
 
 </main>
@@ -121,7 +122,13 @@
 
 <footer>
   <p>MODEL: Random Forest (scikit-learn) · DATA: JPL SBDB Close-Approach API<br/>Built for Bootcamp Demo Day — Group 5</p>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <img src="assets/qr-code.png" alt="QR code linking to the live dashboard" style="width:44px; height:44px; border-radius:4px;" />
+    <span style="font-family:var(--font-mono); font-size:9px; color:var(--muted);">SCAN TO<br/>OPEN LIVE</span>
+  </div>
 </footer>
+
+<div class="shortcuts-hint">← → navigate chapters</div>
 
 <script>
   window.addEventListener('DOMContentLoaded', () => {
@@ -131,6 +138,16 @@
       document.getElementById('ba-safe-after').style.height = '100%';
       document.getElementById('ba-hazard-after').style.height = '100%';
     });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+      const el = document.querySelector('.chapter-link.prev');
+      if (el) window.location.href = el.href;
+    } else if (e.key === 'ArrowRight') {
+      const el = document.querySelector('.chapter-link.next');
+      if (el) window.location.href = el.href;
+    }
   });
 </script>
 
