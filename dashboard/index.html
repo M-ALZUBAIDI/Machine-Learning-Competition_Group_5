@@ -434,6 +434,17 @@
       Establishing uplink to JPL / model API…
     </div>
   </div>
+
+  <div class="section-head" style="margin-top: 56px;">
+    <h2>Proximity Radar</h2>
+    <span class="tag">MISS DISTANCE · SCALED, NOT GEOGRAPHIC</span>
+  </div>
+  <p class="note" style="margin-top:0; margin-bottom: 20px;">Each blip's <strong>distance from center</strong> is real — scaled from the object's actual miss distance. Angle is for spacing/readability only; asteroids don't have a compass bearing, so this isn't a map, it's a radar.</p>
+
+  <div class="radar-wrap" id="radar-wrap">
+    <div class="radar-sweep"></div>
+    <svg id="radar-svg" viewBox="0 0 400 400"></svg>
+  </div>
 </main>
 
 <footer>
@@ -882,11 +893,55 @@ function renderTable(asteroids) {
   `;
 
   document.querySelectorAll('#manifest-body tr').forEach(row => {
-    row.addEventListener('click', () => {
-      document.querySelectorAll('#manifest-body tr').forEach(r => r.classList.remove('active'));
-      row.classList.add('active');
-      focusAsteroid(row.dataset.id);
-    });
+    row.addEventListener('click', () => selectAsteroid(row.dataset.id));
+  });
+}
+
+function selectAsteroid(id) {
+  document.querySelectorAll('#manifest-body tr').forEach(r => r.classList.toggle('active', r.dataset.id === id));
+  document.querySelectorAll('.radar-blip').forEach(b => b.classList.toggle('active', b.dataset.id === id));
+  focusAsteroid(id);
+}
+
+const radarSvg = document.getElementById('radar-svg');
+
+function renderRadar(asteroids) {
+  if (!asteroids.length) { radarSvg.innerHTML = ''; return; }
+
+  const cx = 200, cy = 200, maxR = 170;
+  const maxDist = Math.max(...asteroids.map(a => a.miss_distance), 1);
+  const maxDia = Math.max(...asteroids.map(a => (a.est_diameter_min + a.est_diameter_max) / 2), 0.001);
+
+  let svg = '';
+  svg += `<line class="radar-crosshair" x1="${cx}" y1="20" x2="${cx}" y2="380" />`;
+  svg += `<line class="radar-crosshair" x1="20" y1="${cy}" x2="380" y2="${cy}" />`;
+
+  [0.33, 0.66, 1.0].forEach(f => {
+    const r = maxR * f;
+    svg += `<circle class="radar-ring" cx="${cx}" cy="${cy}" r="${r}" />`;
+    const labelKm = Math.round((maxDist * f) / 1e6);
+    svg += `<text class="radar-ring-label" x="${cx + 4}" y="${cy - r - 3}">${labelKm}M km</text>`;
+  });
+
+  svg += `<circle class="radar-center" cx="${cx}" cy="${cy}" r="3" />`;
+
+  asteroids.forEach((a, i) => {
+    const dist = clamp(a.miss_distance / maxDist, 0.06, 1) * maxR;
+    const angle = i * 137.508 * (Math.PI / 180);
+    const x = cx + Math.cos(angle) * dist;
+    const y = cy + Math.sin(angle) * dist;
+    const avgDia = (a.est_diameter_min + a.est_diameter_max) / 2;
+    const size = clamp(2 + (avgDia / maxDia) * 6, 2, 9);
+    const color = a.hazardous ? '#FF6B35' : '#4FD8EB';
+    svg += `<g class="radar-blip" data-id="${a.id}">
+      <circle class="radar-blip-ring" cx="${x}" cy="${y}" r="4" stroke="${color}" />
+      <circle cx="${x}" cy="${y}" r="${size}" fill="${color}" />
+    </g>`;
+  });
+
+  radarSvg.innerHTML = svg;
+  radarSvg.querySelectorAll('.radar-blip').forEach(el => {
+    el.addEventListener('click', () => selectAsteroid(el.dataset.id));
   });
 }
 
@@ -912,6 +967,7 @@ async function loadData() {
 
     buildAsteroids(asteroids);
     renderTable(asteroids);
+    renderRadar(asteroids);
   } catch (err) {
     liveDot.classList.add('error');
     headerStatus.textContent = 'SIGNAL LOST';
