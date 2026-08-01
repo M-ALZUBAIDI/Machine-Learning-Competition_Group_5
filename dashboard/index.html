@@ -102,6 +102,51 @@
   }
   .repo-link:hover { color: var(--cyan); border-color: var(--cyan-dim); }
 
+  .data-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .data-toggle-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+  .data-toggle-label.active { color: var(--cyan); }
+  .data-toggle-label.on.active { color: var(--amber); }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--cyan-dim);
+    border-radius: 18px;
+    transition: background 0.25s;
+  }
+  .slider::before {
+    content: "";
+    position: absolute;
+    height: 14px; width: 14px;
+    left: 2px; bottom: 2px;
+    background: var(--bg);
+    border-radius: 50%;
+    transition: transform 0.25s;
+  }
+  .switch input:checked + .slider { background: var(--amber-dim); }
+  .switch input:checked + .slider::before { transform: translateX(16px); }
+  #live-dot.test { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
   /* ---------- Hero / 3D scene ---------- */
   #scene-wrap {
     position: relative;
@@ -389,6 +434,14 @@
     <a href="enhancements.html">04 ENHANCEMENTS</a>
   </nav>
   <div class="status-text" id="header-status">ACQUIRING SIGNAL…</div>
+  <label class="data-toggle-wrap">
+    <span class="data-toggle-label off active" id="label-live">LIVE</span>
+    <span class="switch">
+      <input type="checkbox" id="data-toggle">
+      <span class="slider"></span>
+    </span>
+    <span class="data-toggle-label on" id="label-test">TEST</span>
+  </label>
   <a class="repo-link" href="https://github.com/M-ALZUBAIDI/Machine-Learning-Competition_Group_5" target="_blank" rel="noopener">SOURCE →</a>
 </header>
 
@@ -472,6 +525,38 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 // ============ CONFIG ============
 const API_BASE = 'https://nasa-nearest-earth-objects.onrender.com';
 const TEX_BASE = 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/';
+
+// Bundled sample dataset — same shape as a real /predict/live response.
+// Used when the person switches to TEST DATA mode, so the dashboard works
+// even if Render is asleep or JPL's API is having a bad moment (e.g. mid-demo).
+const TEST_DATA = {
+  start_date: '2026-08-01',
+  end_date: '2026-08-07',
+  asteroids: [
+    { id: '2015 ME131', name: '(2015 ME131)', est_diameter_min: 0.306, est_diameter_max: 0.686, relative_velocity: 70382, miss_distance: 37601766, absolute_magnitude: 19.69, close_approach_date: '2026-Aug-02 13:31', hazardous: true, hazard_probability: 0.88 },
+    { id: '2011 LJ1', name: '(2011 LJ1)', est_diameter_min: 0.367, est_diameter_max: 0.820, relative_velocity: 51486, miss_distance: 26927308, absolute_magnitude: 19.30, close_approach_date: '2026-Aug-03 02:14', hazardous: true, hazard_probability: 0.79 },
+    { id: '2023 YX1', name: '(2023 YX1)', est_diameter_min: 0.028, est_diameter_max: 0.063, relative_velocity: 86625, miss_distance: 62370655, absolute_magnitude: 24.86, close_approach_date: '2026-Aug-01 09:12', hazardous: false, hazard_probability: 0.06 },
+    { id: '433 Eros', name: '433 Eros', est_diameter_min: 13.2, est_diameter_max: 29.5, relative_velocity: 21315, miss_distance: 26040972, absolute_magnitude: 10.40, close_approach_date: '2026-Aug-04 18:45', hazardous: true, hazard_probability: 0.71 },
+    { id: '2019 OK', name: '(2019 OK)', est_diameter_min: 0.057, est_diameter_max: 0.128, relative_velocity: 94612, miss_distance: 71987200, absolute_magnitude: 23.30, close_approach_date: '2026-Aug-05 05:03', hazardous: false, hazard_probability: 0.11 },
+    { id: '2001 FO32', name: '(2001 FO32)', est_diameter_min: 0.440, est_diameter_max: 0.985, relative_velocity: 124483, miss_distance: 20356900, absolute_magnitude: 18.10, close_approach_date: '2026-Aug-01 22:37', hazardous: true, hazard_probability: 0.82 },
+    { id: '2020 XR', name: '(2020 XR)', est_diameter_min: 0.014, est_diameter_max: 0.031, relative_velocity: 42876, miss_distance: 8123400, absolute_magnitude: 26.40, close_approach_date: '2026-Aug-06 11:58', hazardous: false, hazard_probability: 0.04 },
+    { id: '2016 NF23', name: '(2016 NF23)', est_diameter_min: 0.076, est_diameter_max: 0.170, relative_velocity: 33920, miss_distance: 5893200, absolute_magnitude: 22.60, close_approach_date: '2026-Aug-02 07:20', hazardous: false, hazard_probability: 0.34 },
+    { id: '2013 UG1', name: '(2013 UG1)', est_diameter_min: 0.022, est_diameter_max: 0.049, relative_velocity: 58210, miss_distance: 45671200, absolute_magnitude: 25.20, close_approach_date: '2026-Aug-07 16:11', hazardous: false, hazard_probability: 0.09 },
+    { id: '2022 GY2', name: '(2022 GY2)', est_diameter_min: 0.190, est_diameter_max: 0.425, relative_velocity: 39481, miss_distance: 14235600, absolute_magnitude: 20.80, close_approach_date: '2026-Aug-03 20:44', hazardous: true, hazard_probability: 0.63 },
+    { id: '2010 XC15', name: '(2010 XC15)', est_diameter_min: 0.038, est_diameter_max: 0.086, relative_velocity: 67300, miss_distance: 59284100, absolute_magnitude: 24.10, close_approach_date: '2026-Aug-04 03:29', hazardous: false, hazard_probability: 0.14 },
+    { id: '2018 CB', name: '(2018 CB)', est_diameter_min: 0.011, est_diameter_max: 0.024, relative_velocity: 28940, miss_distance: 3120500, absolute_magnitude: 27.10, close_approach_date: '2026-Aug-01 14:52', hazardous: false, hazard_probability: 0.05 },
+    { id: '2014 JO25', name: '(2014 JO25)', est_diameter_min: 0.650, est_diameter_max: 1.450, relative_velocity: 108340, miss_distance: 18345900, absolute_magnitude: 18.20, close_approach_date: '2026-Aug-05 09:17', hazardous: true, hazard_probability: 0.85 },
+    { id: '2021 RS2', name: '(2021 RS2)', est_diameter_min: 0.046, est_diameter_max: 0.103, relative_velocity: 51220, miss_distance: 33487600, absolute_magnitude: 23.70, close_approach_date: '2026-Aug-06 21:36', hazardous: false, hazard_probability: 0.18 },
+    { id: '2005 YU55', name: '(2005 YU55)', est_diameter_min: 0.280, est_diameter_max: 0.626, relative_velocity: 47890, miss_distance: 9876300, absolute_magnitude: 21.10, close_approach_date: '2026-Aug-02 17:05', hazardous: true, hazard_probability: 0.67 },
+    { id: '2017 BS5', name: '(2017 BS5)', est_diameter_min: 0.019, est_diameter_max: 0.042, relative_velocity: 61540, miss_distance: 52190400, absolute_magnitude: 25.60, close_approach_date: '2026-Aug-07 06:48', hazardous: false, hazard_probability: 0.07 },
+    { id: '2012 TC4', name: '(2012 TC4)', est_diameter_min: 0.008, est_diameter_max: 0.018, relative_velocity: 24680, miss_distance: 1897600, absolute_magnitude: 27.80, close_approach_date: '2026-Aug-03 12:23', hazardous: false, hazard_probability: 0.10 },
+    { id: '2009 FD', name: '(2009 FD)', est_diameter_min: 0.130, est_diameter_max: 0.290, relative_velocity: 36120, miss_distance: 22458700, absolute_magnitude: 21.90, close_approach_date: '2026-Aug-04 15:39', hazardous: false, hazard_probability: 0.29 },
+    { id: '2003 SD220', name: '(2003 SD220)', est_diameter_min: 0.980, est_diameter_max: 2.190, relative_velocity: 15870, miss_distance: 4128900, absolute_magnitude: 18.90, close_approach_date: '2026-Aug-01 04:56', hazardous: true, hazard_probability: 0.91 },
+    { id: '2022 AA', name: '(2022 AA)', est_diameter_min: 0.006, est_diameter_max: 0.013, relative_velocity: 19430, miss_distance: 890400, absolute_magnitude: 28.40, close_approach_date: '2026-Aug-05 23:14', hazardous: false, hazard_probability: 0.03 },
+  ],
+};
+
+let dataMode = 'live'; // 'live' | 'test'
 
 // ============ THREE.JS SCENE ============
 const container = document.getElementById('canvas-container');
@@ -961,29 +1046,45 @@ function selectAsteroid(id) {
   focusAsteroid(id);
 }
 
+function applyDataset(data, isTest) {
+  const asteroids = data.asteroids || [];
+  const hazardCount = asteroids.filter(a => a.hazardous).length;
+
+  statTotal.textContent = asteroids.length;
+  statHazard.textContent = hazardCount;
+  const windowText = `${fmtDate(data.start_date)} – ${fmtDate(data.end_date)}`;
+  statWindow.textContent = windowText;
+  manifestWindow.textContent = windowText.toUpperCase() + (isTest ? ' (TEST DATA)' : '');
+
+  headerStatus.textContent = isTest
+    ? `TEST DATA · ${asteroids.length} SAMPLE OBJECTS`
+    : `LIVE · ${asteroids.length} OBJECTS TRACKED`;
+  footerRefresh.textContent = isTest
+    ? 'MODE: TEST DATA — NOT LIVE'
+    : `LAST SYNC: ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+
+  buildAsteroids(asteroids);
+  renderTable(asteroids);
+  renderMap(asteroids);
+}
+
 async function loadData() {
-  headerStatus.textContent = 'ACQUIRING SIGNAL…';
   liveDot.classList.remove('error');
+  liveDot.classList.toggle('test', dataMode === 'test');
+
+  if (dataMode === 'test') {
+    headerStatus.textContent = 'LOADING TEST DATA…';
+    applyDataset(TEST_DATA, true);
+    return;
+  }
+
+  headerStatus.textContent = 'ACQUIRING SIGNAL…';
 
   try {
     const res = await fetch(`${API_BASE}/predict/live`);
     if (!res.ok) throw new Error(`API returned ${res.status}`);
     const data = await res.json();
-    const asteroids = data.asteroids || [];
-    const hazardCount = asteroids.filter(a => a.hazardous).length;
-
-    statTotal.textContent = asteroids.length;
-    statHazard.textContent = hazardCount;
-    const windowText = `${fmtDate(data.start_date)} – ${fmtDate(data.end_date)}`;
-    statWindow.textContent = windowText;
-    manifestWindow.textContent = windowText.toUpperCase();
-
-    headerStatus.textContent = `LIVE · ${asteroids.length} OBJECTS TRACKED`;
-    footerRefresh.textContent = `LAST SYNC: ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
-
-    buildAsteroids(asteroids);
-    renderTable(asteroids);
-    renderMap(asteroids);
+    applyDataset(data, false);
   } catch (err) {
     liveDot.classList.add('error');
     headerStatus.textContent = 'SIGNAL LOST';
@@ -992,10 +1093,28 @@ async function loadData() {
         Uplink to the model API failed — it may be waking from idle (free-tier hosting sleeps after inactivity, first request can take up to a minute).
         <br/><br/>
         <button class="retry-btn" id="retry-btn">RETRY UPLINK</button>
+        <button class="retry-btn" id="use-test-btn" style="margin-left:10px; border-color:var(--cyan-dim); color:var(--cyan);">USE TEST DATA INSTEAD</button>
       </div>`;
     document.getElementById('retry-btn').addEventListener('click', loadData);
+    document.getElementById('use-test-btn').addEventListener('click', () => {
+      dataMode = 'test';
+      dataToggle.checked = true;
+      labelLive.classList.remove('active');
+      labelTest.classList.add('active');
+      loadData();
+    });
   }
 }
+
+const dataToggle = document.getElementById('data-toggle');
+const labelLive = document.getElementById('label-live');
+const labelTest = document.getElementById('label-test');
+dataToggle.addEventListener('change', () => {
+  dataMode = dataToggle.checked ? 'test' : 'live';
+  labelLive.classList.toggle('active', dataMode === 'live');
+  labelTest.classList.toggle('active', dataMode === 'test');
+  loadData();
+});
 
 loadData();
 </script>
