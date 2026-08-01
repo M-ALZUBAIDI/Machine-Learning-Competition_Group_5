@@ -432,6 +432,23 @@ footer p {
   .chapter-link.next { align-items: flex-start; text-align: left; margin-left: 0; }
 }
 
+.shortcuts-hint {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  background: rgba(18,24,43,0.85);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--panel-border);
+  padding: 6px 10px;
+  border-radius: 4px;
+  z-index: 50;
+  opacity: 0.75;
+}
+@media (max-width: 640px) { .shortcuts-hint { display: none; } }
+
 /* ---------- Global Approach Map ---------- */
 #map-container {
   width: 100%;
