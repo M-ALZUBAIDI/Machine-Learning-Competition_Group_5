@@ -33,7 +33,6 @@
   <span class="chapter-badge">CHAPTER 01 / 04</span>
   <span class="eyebrow">EXPLORATORY DATA ANALYSIS</span>
   <h1>What the raw catalog actually looks like.</h1>
-  <p class="page-sub">90,836 near-Earth objects from NASA's NEO catalog, examined before any model saw them — class balance, feature distributions, and what separates a hazardous object from a routine one.</p>
 </div>
 
 <main>
@@ -55,14 +54,40 @@
       <div class="metric-card">
         <span class="label">MISSING VALUES</span>
         <span class="value">0</span>
-        <span class="sub">no imputation required</span>
       </div>
       <div class="metric-card">
         <span class="label">DUPLICATE ROWS</span>
         <span class="value">0</span>
       </div>
     </div>
-    <p class="note"><strong>id</strong> and <strong>name</strong> were dropped — they uniquely identify each object and carry no predictive signal. <strong>orbiting_body</strong> and <strong>sentry_object</strong> were dropped for near-zero variance (nearly every record shares one value). That leaves 5 numeric features: diameter (min/max), relative velocity, miss distance, and absolute magnitude.</p>
+    <p class="note">After dropping identifier and near-zero-variance columns, <strong>5 numeric features</strong> feed the model:</p>
+    <div class="card-grid">
+      <div class="metric-card"><span class="value" style="font-size:14px; color:var(--text);">est_diameter_min</span></div>
+      <div class="metric-card"><span class="value" style="font-size:14px; color:var(--text);">est_diameter_max</span></div>
+      <div class="metric-card"><span class="value" style="font-size:14px; color:var(--text);">relative_velocity</span></div>
+      <div class="metric-card"><span class="value" style="font-size:14px; color:var(--text);">miss_distance</span></div>
+      <div class="metric-card"><span class="value" style="font-size:14px; color:var(--text);">absolute_magnitude</span></div>
+    </div>
+
+    <p class="note">Correlation between the 5 features:</p>
+    <div class="panel" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th class="num">DIAM MIN</th><th class="num">DIAM MAX</th><th class="num">VELOCITY</th><th class="num">MISS DIST.</th><th class="num">MAGNITUDE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>DIAM MIN</td><td class="num" style="background:rgba(79,216,235,0.40); font-weight:600;">1.00</td><td class="num" style="background:rgba(79,216,235,0.40); font-weight:600;">1.00</td><td class="num" style="background:rgba(79,216,235,0.09);">0.22</td><td class="num" style="background:rgba(79,216,235,0.06);">0.14</td><td class="num" style="background:rgba(255,107,53,0.22);">-0.56</td></tr>
+          <tr><td>DIAM MAX</td><td class="num" style="background:rgba(79,216,235,0.40); font-weight:600;">1.00</td><td class="num" style="background:rgba(79,216,235,0.40); font-weight:600;">1.00</td><td class="num" style="background:rgba(79,216,235,0.09);">0.22</td><td class="num" style="background:rgba(79,216,235,0.06);">0.14</td><td class="num" style="background:rgba(255,107,53,0.22);">-0.56</td></tr>
+          <tr><td>VELOCITY</td><td class="num" style="background:rgba(79,216,235,0.09);">0.22</td><td class="num" style="background:rgba(79,216,235,0.09);">0.22</td><td class="num" style="background:rgba(79,216,235,0.40); font-weight:600;">1.00</td><td class="num" style="background:rgba(79,216,235,0.13);">0.33</td><td class="num" style="background:rgba(255,107,53,0.14);">-0.35</td></tr>
+          <tr><td>MISS DIST.</td><td class="num" style="background:rgba(79,216,235,0.06);">0.14</td><td class="num" style="background:rgba(79,216,235,0.06);">0.14</td><td class="num" style="background:rgba(79,216,235,0.13);">0.33</td><td class="num" style="background:rgba(79,216,235,0.40); font-weight:600;">1.00</td><td class="num" style="background:rgba(255,107,53,0.11);">-0.26</td></tr>
+          <tr><td>MAGNITUDE</td><td class="num" style="background:rgba(255,107,53,0.22);">-0.56</td><td class="num" style="background:rgba(255,107,53,0.22);">-0.56</td><td class="num" style="background:rgba(255,107,53,0.14);">-0.35</td><td class="num" style="background:rgba(255,107,53,0.11);">-0.26</td><td class="num" style="background:rgba(79,216,235,0.40); font-weight:600;">1.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>est_diameter_min</strong> and <strong>est_diameter_max</strong> are perfectly correlated (r = 1.00) — expected, since both are derived from the same magnitude formula. <strong>absolute_magnitude</strong> has the strongest relationship with diameter (r = -0.56, negative because lower magnitude means a brighter, larger object) — an early hint of the same size-drives-risk pattern the model later confirms.</p>
   </section>
 
   <section class="block">
@@ -86,7 +111,7 @@
         </div>
       </div>
     </div>
-    <p class="note">A severe class imbalance — roughly 9 non-hazardous objects for every 1 hazardous one. Left untreated, a model could score ~90% accuracy by predicting "not hazardous" every time while missing nearly all real threats. This is why <strong>SMOTE</strong> was applied to the training split only, synthesizing minority-class samples so the model actually learns what separates the two classes rather than just learning the imbalance.</p>
+    <p class="note">About 9 safe objects for every 1 hazardous one — a severe imbalance. We handled it with <strong>SMOTE</strong>, covered in detail on the next page.</p>
   </section>
 
   <section class="block">
@@ -144,17 +169,7 @@
         </tbody>
       </table>
     </div>
-    <p class="note">Wide spreads across the board — diameter alone ranges from 0.0006 km to nearly 85 km, a scale difference of five orders of magnitude. This is exactly why <strong>StandardScaler</strong> was applied before training: without it, features with naturally larger numeric ranges (like miss_distance in raw km) would dominate distance-sensitive models regardless of their actual predictive value.</p>
-  </section>
-
-  <section class="block">
-    <div class="section-head">
-      <h2>What Separates Hazardous From Safe</h2>
-      <span class="tag">FROM VIOLIN / PAIR PLOTS</span>
-    </div>
-    <div class="panel">
-      <p class="note" style="margin-top:0;">Hazardous objects cluster at <strong>absolute_magnitude under ~22</strong> — meaning brighter, and therefore <strong>larger</strong>, objects. Size turns out to be the primary signal, with velocity and miss distance acting as secondary, supporting features rather than the main driver. This lines up with orbital mechanics intuition: a bigger object at a given distance simply poses more potential risk, which is exactly what the feature importance results (see Model Results) confirm numerically.</p>
-    </div>
+    <p class="note">Features sit on very different scales — diameter in fractions of a km, miss distance in the tens of millions. We used <strong>StandardScaler</strong> to put every feature on equal footing before training, so no feature dominates just because its raw numbers are bigger.</p>
   </section>
 
 </main>
