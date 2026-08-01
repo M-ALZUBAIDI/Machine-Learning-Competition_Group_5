@@ -34,6 +34,12 @@ model = joblib.load("model/neo_model.pkl")
 scaler = joblib.load("model/neo_scaler.pkl")
 feature_order = joblib.load("model/neo_feature_order.pkl")
 
+# Simple in-memory cache for the default "this week" live call — refreshed
+# once per day rather than on every request. Resets if Render's process
+# restarts (e.g. waking from idle on the free tier), which is fine: that
+# just means the first request of a fresh process re-fetches once, as normal.
+_live_cache = {"date": None, "data": None}
+
 
 class NeoFeatures(BaseModel):
     est_diameter_min: float
@@ -75,7 +81,19 @@ def predict_live(start_date: str = None, end_date: str = None):
     Fetch real asteroids from NASA's API for a date range and predict
     hazard status for each. Defaults to today through +6 days if no
     dates are given (NASA's feed endpoint allows a max 7-day window).
+
+    The default (no explicit dates) call is cached for the day — the
+    first request each day hits JPL live, every request after that on
+    the same day is served from memory instantly. Explicit date ranges
+    always fetch fresh (not cached).
     """
+    is_default_window = start_date is None and end_date is None
+
+    if is_default_window:
+        today_key = date.today().isoformat()
+        if _live_cache["date"] == today_key and _live_cache["data"] is not None:
+            return _live_cache["data"]
+
     if start_date is None:
         start_date = date.today().isoformat()
     if end_date is None:
@@ -100,9 +118,15 @@ def predict_live(start_date: str = None, end_date: str = None):
     # Most likely hazardous first
     results.sort(key=lambda r: r["hazard_probability"], reverse=True)
 
-    return {
+    response = {
         "start_date": start_date,
         "end_date": end_date,
         "count": len(results),
         "asteroids": results,
     }
+
+    if is_default_window:
+        _live_cache["date"] = date.today().isoformat()
+        _live_cache["data"] = response
+
+    return response
