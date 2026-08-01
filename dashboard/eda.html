@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Imbalanced Data — NEO Hazard Predictor</title>
-<meta name="description" content="How severe class imbalance in the NEO dataset was identified and addressed with SMOTE." />
+<title>EDA — NEO Hazard Predictor</title>
+<meta name="description" content="Exploratory data analysis of NASA's near-Earth object dataset." />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,8 +20,8 @@
   </div>
   <nav class="tabs">
     <a href="index.html">LIVE TRACKER</a>
-    <a href="eda.html">01 EDA</a>
-    <a href="imbalance.html" class="active">02 IMBALANCE</a>
+    <a href="eda.html" class="active">01 EDA</a>
+    <a href="imbalance.html">02 IMBALANCE</a>
     <a href="results.html">03 RESULTS</a>
     <a href="enhancements.html">04 ENHANCEMENTS</a>
     <a href="about.html">ABOUT</a>
@@ -30,93 +30,143 @@
 </header>
 
 <div class="page-hero">
-  <span class="chapter-badge">CHAPTER 02 / 04</span>
-  <span class="eyebrow">THE IMBALANCE PROBLEM</span>
-  <h1>90% of asteroids are harmless. That's exactly the trap.</h1>
-  <p class="page-sub">A model that learns nothing can still look excellent on paper here — which is precisely why this step couldn't be skipped.</p>
+  <span class="chapter-badge">CHAPTER 01 / 04</span>
+  <span class="eyebrow">EXPLORATORY DATA ANALYSIS</span>
+  <h1>What the raw catalog actually looks like.</h1>
+  <p class="page-sub">90,836 near-Earth objects from NASA's NEO catalog, examined before any model saw them — class balance, feature distributions, and what separates a hazardous object from a routine one.</p>
 </div>
 
 <main>
 
   <section class="block">
     <div class="section-head">
-      <h2>The Trap</h2>
-      <span class="tag">RAW TRAINING SPLIT</span>
-    </div>
-    <div class="panel">
-      <p class="note" style="margin-top:0;">Of 90,836 objects, only 8,840 (9.7%) are hazardous. A model that <strong>always predicts "not hazardous"</strong> — never looking at a single feature — would score roughly <strong>90% accuracy</strong> on this dataset. It would also be completely useless: it would miss every real hazardous object, which for a hazard-detection system is the one failure mode that actually matters.</p>
-      <p class="note"><strong>Accuracy alone is a misleading metric on imbalanced data.</strong> This is why the model comparison on the Results page also reports precision, recall, and F1 — recall on the hazardous class specifically is what tells us whether the model is actually doing its job.</p>
-    </div>
-  </section>
-
-  <section class="block">
-    <div class="section-head">
-      <h2>Before → After SMOTE</h2>
-      <span class="tag">TRAINING SPLIT ONLY</span>
-    </div>
-    <div class="panel">
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 32px;" id="before-after-grid">
-        <div>
-          <p style="font-family:var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:0.08em; margin-bottom:16px;">BEFORE — 72,668 training samples</p>
-          <div class="chart-bars" style="height:160px;">
-            <div class="chart-bar-col">
-              <div class="chart-bar" id="ba-safe-before" style="height:0%;"><span class="bar-label-top">65,596</span></div>
-              <span class="cat-label">SAFE</span>
-            </div>
-            <div class="chart-bar-col">
-              <div class="chart-bar amber" id="ba-hazard-before" style="height:0%;"><span class="bar-label-top">7,072</span></div>
-              <span class="cat-label">HAZARDOUS</span>
-            </div>
-          </div>
-        </div>
-        <div>
-          <p style="font-family:var(--font-mono); font-size:11px; color:var(--cyan); letter-spacing:0.08em; margin-bottom:16px;">AFTER — 131,192 training samples</p>
-          <div class="chart-bars" style="height:160px;">
-            <div class="chart-bar-col">
-              <div class="chart-bar" id="ba-safe-after" style="height:0%;"><span class="bar-label-top">65,596</span></div>
-              <span class="cat-label">SAFE</span>
-            </div>
-            <div class="chart-bar-col">
-              <div class="chart-bar" id="ba-hazard-after" style="height:0%; background:var(--cyan);"><span class="bar-label-top">65,596</span></div>
-              <span class="cat-label">HAZARDOUS</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <p class="note">SMOTE (<strong>Synthetic Minority Oversampling Technique</strong>) was applied to bring the two classes to parity — not by duplicating existing hazardous samples, but by generating new synthetic ones interpolated between real hazardous objects and their nearest neighbors in feature space. This teaches the model the actual shape of the minority class, rather than just repeating a handful of examples until it memorizes them.</p>
-  </section>
-
-  <section class="block">
-    <div class="section-head">
-      <h2>The One Rule That Matters Here</h2>
-      <span class="tag">NO DATA LEAKAGE</span>
+      <h2>Dataset Overview</h2>
+      <span class="tag">SOURCE: NASA NEO CATALOG (KAGGLE)</span>
     </div>
     <div class="card-grid">
       <div class="metric-card">
-        <span class="label">TRAIN SET</span>
-        <span class="value cyan">BALANCED</span>
-        <span class="sub">SMOTE applied</span>
+        <span class="label">TOTAL RECORDS</span>
+        <span class="value">90,836</span>
       </div>
       <div class="metric-card">
-        <span class="label">TEST SET</span>
-        <span class="value amber">UNTOUCHED</span>
-        <span class="sub">real-world distribution</span>
+        <span class="label">RAW COLUMNS</span>
+        <span class="value">10 <span style="font-size:14px; color:var(--muted);">→ 5 used</span></span>
+      </div>
+      <div class="metric-card">
+        <span class="label">MISSING VALUES</span>
+        <span class="value">0</span>
+        <span class="sub">no imputation required</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">DUPLICATE ROWS</span>
+        <span class="value">0</span>
       </div>
     </div>
-    <p class="note">SMOTE was fit and applied <strong>only to the training split</strong>, after the train/test split was already made. The test set kept its original, real-world imbalance (16,400 safe vs. 1,768 hazardous) so that every accuracy, precision, and recall number reported on the Results page reflects genuine performance on realistic data — not performance inflated by evaluating against artificially balanced, partly-synthetic samples.</p>
+    <p class="note"><strong>id</strong> and <strong>name</strong> were dropped — they uniquely identify each object and carry no predictive signal. <strong>orbiting_body</strong> and <strong>sentry_object</strong> were dropped for near-zero variance (nearly every record shares one value). That leaves 5 numeric features: diameter (min/max), relative velocity, miss distance, and absolute magnitude.</p>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Class Balance</h2>
+      <span class="tag">TARGET: hazardous</span>
+    </div>
+    <div class="panel">
+      <div class="chart-bars">
+        <div class="chart-bar-col">
+          <div class="chart-bar" id="bar-safe" style="height:0%; background: var(--cyan);">
+            <span class="bar-label-top">81,996</span>
+          </div>
+          <span class="cat-label">NOT HAZARDOUS · 90.3%</span>
+        </div>
+        <div class="chart-bar-col">
+          <div class="chart-bar amber" id="bar-hazard" style="height:0%;">
+            <span class="bar-label-top">8,840</span>
+          </div>
+          <span class="cat-label">HAZARDOUS · 9.7%</span>
+        </div>
+      </div>
+    </div>
+    <p class="note">A severe class imbalance — roughly 9 non-hazardous objects for every 1 hazardous one. Left untreated, a model could score ~90% accuracy by predicting "not hazardous" every time while missing nearly all real threats. This is why <strong>SMOTE</strong> was applied to the training split only, synthesizing minority-class samples so the model actually learns what separates the two classes rather than just learning the imbalance.</p>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Feature Summary Statistics</h2>
+      <span class="tag">n = 90,836</span>
+    </div>
+    <div class="panel" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>FEATURE</th>
+            <th class="num">MEAN</th>
+            <th class="num">STD</th>
+            <th class="num">MIN</th>
+            <th class="num">MAX</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>est_diameter_min (km)</td>
+            <td class="num">0.127</td>
+            <td class="num">0.299</td>
+            <td class="num">0.0006</td>
+            <td class="num">37.89</td>
+          </tr>
+          <tr>
+            <td>est_diameter_max (km)</td>
+            <td class="num">0.285</td>
+            <td class="num">0.667</td>
+            <td class="num">0.0014</td>
+            <td class="num">84.73</td>
+          </tr>
+          <tr>
+            <td>relative_velocity (km/h)</td>
+            <td class="num">48,067</td>
+            <td class="num">25,293</td>
+            <td class="num">203</td>
+            <td class="num">236,990</td>
+          </tr>
+          <tr>
+            <td>miss_distance (km)</td>
+            <td class="num">37,066,548</td>
+            <td class="num">22,352,040</td>
+            <td class="num">6,746</td>
+            <td class="num">74,798,650</td>
+          </tr>
+          <tr>
+            <td>absolute_magnitude</td>
+            <td class="num">23.53</td>
+            <td class="num">2.89</td>
+            <td class="num">9.23</td>
+            <td class="num">33.20</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Wide spreads across the board — diameter alone ranges from 0.0006 km to nearly 85 km, a scale difference of five orders of magnitude. This is exactly why <strong>StandardScaler</strong> was applied before training: without it, features with naturally larger numeric ranges (like miss_distance in raw km) would dominate distance-sensitive models regardless of their actual predictive value.</p>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>What Separates Hazardous From Safe</h2>
+      <span class="tag">FROM VIOLIN / PAIR PLOTS</span>
+    </div>
+    <div class="panel">
+      <p class="note" style="margin-top:0;">Hazardous objects cluster at <strong>absolute_magnitude under ~22</strong> — meaning brighter, and therefore <strong>larger</strong>, objects. Size turns out to be the primary signal, with velocity and miss distance acting as secondary, supporting features rather than the main driver. This lines up with orbital mechanics intuition: a bigger object at a given distance simply poses more potential risk, which is exactly what the feature importance results (see Model Results) confirm numerically.</p>
+    </div>
   </section>
 
 </main>
 
 <div class="chapter-nav">
-  <a class="chapter-link prev" href="eda.html">
-    <span class="dir">← PREVIOUS</span>
-    <span class="chapter-title">01 · Exploratory Data Analysis</span>
+  <a class="chapter-link prev" href="index.html">
+    <span class="dir">← BACK</span>
+    <span class="chapter-title">Live Tracker</span>
   </a>
-  <a class="chapter-link next" href="results.html">
+  <a class="chapter-link next" href="imbalance.html">
     <span class="dir">NEXT →</span>
-    <span class="chapter-title">03 · Model Results</span>
+    <span class="chapter-title">02 · Imbalanced Data</span>
   </a>
 </div>
 
@@ -131,12 +181,11 @@
 <div class="shortcuts-hint">← → navigate chapters</div>
 
 <script>
+  // Animate class-balance bars in on load
   window.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(() => {
-      document.getElementById('ba-safe-before').style.height = '100%';
-      document.getElementById('ba-hazard-before').style.height = '10.8%';
-      document.getElementById('ba-safe-after').style.height = '100%';
-      document.getElementById('ba-hazard-after').style.height = '100%';
+      document.getElementById('bar-safe').style.height = '100%';
+      document.getElementById('bar-hazard').style.height = '11%';
     });
   });
 
