@@ -147,6 +147,32 @@
   .switch input:checked + .slider::before { transform: translateX(16px); }
   #live-dot.test { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
 
+  .manifest-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: -8px 0 18px;
+  }
+  .week-nav { display: flex; gap: 8px; }
+  .ctrl-btn {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    padding: 7px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .ctrl-btn:hover:not(:disabled) { border-color: var(--cyan-dim); color: var(--text); }
+  .ctrl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .ctrl-btn.cyan { border-color: var(--cyan-dim); color: var(--cyan); }
+  .ctrl-btn.cyan:hover:not(:disabled) { background: rgba(79,216,235,0.08); }
+
   /* ---------- Hero / 3D scene ---------- */
   #scene-wrap {
     position: relative;
@@ -432,6 +458,7 @@
     <a href="imbalance.html">02 IMBALANCE</a>
     <a href="results.html">03 RESULTS</a>
     <a href="enhancements.html">04 ENHANCEMENTS</a>
+    <a href="about.html">ABOUT</a>
   </nav>
   <div class="status-text" id="header-status">ACQUIRING SIGNAL…</div>
   <label class="data-toggle-wrap">
@@ -479,6 +506,14 @@
     <span class="window" id="manifest-window">—</span>
   </div>
 
+  <div class="manifest-controls">
+    <div class="week-nav">
+      <button class="ctrl-btn" id="prev-week-btn" title="Previous 7-day window">◀ PREV WEEK</button>
+      <button class="ctrl-btn" id="next-week-btn" title="Next 7-day window">NEXT WEEK ▶</button>
+    </div>
+    <button class="ctrl-btn cyan" id="export-csv-btn">⬇ EXPORT CSV</button>
+  </div>
+
   <div class="legend">
     <span><span class="swatch" style="background:var(--amber)"></span>Predicted hazardous</span>
     <span><span class="swatch" style="background:var(--cyan)"></span>Predicted safe</span>
@@ -503,6 +538,10 @@
 <footer>
   <p>MODEL: Random Forest (scikit-learn) · DATA: JPL SBDB Close-Approach API<br/>Built for Bootcamp Demo Day — Group 5</p>
   <p id="footer-refresh">—</p>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <img src="assets/qr-code.png" alt="QR code linking to the live dashboard" style="width:44px; height:44px; border-radius:4px;" />
+    <span style="font-family:var(--font-mono); font-size:9px; color:var(--muted);">SCAN TO<br/>OPEN LIVE</span>
+  </div>
 </footer>
 
 <script type="importmap">
@@ -1046,8 +1085,11 @@ function selectAsteroid(id) {
   focusAsteroid(id);
 }
 
+let currentAsteroids = [];
+
 function applyDataset(data, isTest) {
   const asteroids = data.asteroids || [];
+  currentAsteroids = asteroids;
   const hazardCount = asteroids.filter(a => a.hazardous).length;
 
   statTotal.textContent = asteroids.length;
@@ -1068,9 +1110,23 @@ function applyDataset(data, isTest) {
   renderMap(asteroids);
 }
 
+// ---------- Time-travel ----------
+let weekOffset = 0; // in units of 7-day windows, relative to today
+
+function computeDateRange(offset) {
+  const start = new Date();
+  start.setDate(start.getDate() + offset * 7);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const iso = d => d.toISOString().split('T')[0];
+  return [iso(start), iso(end)];
+}
+
 async function loadData() {
   liveDot.classList.remove('error');
   liveDot.classList.toggle('test', dataMode === 'test');
+  prevWeekBtn.disabled = dataMode === 'test';
+  nextWeekBtn.disabled = dataMode === 'test';
 
   if (dataMode === 'test') {
     headerStatus.textContent = 'LOADING TEST DATA…';
@@ -1081,7 +1137,8 @@ async function loadData() {
   headerStatus.textContent = 'ACQUIRING SIGNAL…';
 
   try {
-    const res = await fetch(`${API_BASE}/predict/live`);
+    const [startDate, endDate] = computeDateRange(weekOffset);
+    const res = await fetch(`${API_BASE}/predict/live?start_date=${startDate}&end_date=${endDate}`);
     if (!res.ok) throw new Error(`API returned ${res.status}`);
     const data = await res.json();
     applyDataset(data, false);
@@ -1106,6 +1163,50 @@ async function loadData() {
   }
 }
 
+const prevWeekBtn = document.getElementById('prev-week-btn');
+const nextWeekBtn = document.getElementById('next-week-btn');
+prevWeekBtn.addEventListener('click', () => { weekOffset -= 1; loadData(); });
+nextWeekBtn.addEventListener('click', () => { weekOffset += 1; loadData(); });
+
+// ---------- CSV export ----------
+document.getElementById('export-csv-btn').addEventListener('click', () => {
+  if (!currentAsteroids.length) return;
+  const headers = ['id', 'name', 'est_diameter_min_km', 'est_diameter_max_km', 'relative_velocity_kmh', 'miss_distance_km', 'absolute_magnitude', 'close_approach_date', 'hazardous', 'hazard_probability'];
+  const rows = currentAsteroids.map(a => headers.map(h => {
+    const v = a[h] ?? '';
+    const s = String(v).replace(/"/g, '""');
+    return /[,"\n]/.test(s) ? `"${s}"` : s;
+  }).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `neo-manifest-${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// ---------- Keyboard shortcuts ----------
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  if (e.code === 'Space') {
+    e.preventDefault();
+    controls.autoRotate = !controls.autoRotate;
+  } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (!currentAsteroids.length) return;
+    const currentIdx = currentAsteroids.findIndex(a => a.id === focusedId);
+    let nextIdx = e.key === 'ArrowDown' ? currentIdx + 1 : currentIdx - 1;
+    if (nextIdx < 0) nextIdx = currentAsteroids.length - 1;
+    if (nextIdx >= currentAsteroids.length) nextIdx = 0;
+    selectAsteroid(currentAsteroids[nextIdx].id);
+  }
+});
+
 const dataToggle = document.getElementById('data-toggle');
 const labelLive = document.getElementById('label-live');
 const labelTest = document.getElementById('label-test');
@@ -1118,6 +1219,8 @@ dataToggle.addEventListener('change', () => {
 
 loadData();
 </script>
+
+<div class="shortcuts-hint">↑↓ select asteroid · SPACE pause rotation</div>
 
 </body>
 </html>
