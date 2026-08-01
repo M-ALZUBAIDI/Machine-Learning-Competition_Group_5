@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>About — NEO Hazard Predictor</title>
+<meta name="description" content="System architecture and team behind the NEO Hazard Predictor." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="wordmark">
+    <span class="dot"></span>
+    NEO HAZARD PREDICTOR
+  </div>
+  <nav class="tabs">
+    <a href="index.html">LIVE TRACKER</a>
+    <a href="eda.html">01 EDA</a>
+    <a href="imbalance.html">02 IMBALANCE</a>
+    <a href="results.html">03 RESULTS</a>
+    <a href="enhancements.html">04 ENHANCEMENTS</a>
+    <a href="about.html" class="active">ABOUT</a>
+  </nav>
+  <a class="repo-link" href="https://github.com/M-ALZUBAIDI/Machine-Learning-Competition_Group_5" target="_blank" rel="noopener">SOURCE →</a>
+</header>
+
+<div class="page-hero">
+  <span class="eyebrow">HOW IT'S BUILT</span>
+  <h1>System architecture &amp; the team behind it.</h1>
+  <p class="page-sub">Five pieces working together — training, model serving, live data, and the dashboard you're looking at right now.</p>
+</div>
+
+<main>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Architecture</h2>
+      <span class="tag">GITHUB · RENDER · VERCEL · JPL</span>
+    </div>
+    <div class="panel" style="overflow-x:auto;">
+      <svg viewBox="0 0 900 340" style="width:100%; min-width:640px; height:auto; display:block;" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--cyan)" />
+          </marker>
+          <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--amber)" />
+          </marker>
+        </defs>
+
+        <!-- connections (drawn first, under boxes) -->
+        <line x1="200" y1="75" x2="278" y2="75" stroke="var(--cyan-dim)" stroke-width="1.5" marker-end="url(#arrow)" />
+        <text x="205" y="65" class="arch-label">export .pkl</text>
+
+        <line x1="440" y1="75" x2="518" y2="75" stroke="var(--cyan-dim)" stroke-width="1.5" marker-end="url(#arrow)" />
+        <text x="448" y="65" class="arch-label">deploy api/</text>
+
+        <path d="M 360 110 Q 360 190 518 253" fill="none" stroke="var(--cyan-dim)" stroke-width="1.5" marker-end="url(#arrow)" />
+        <text x="380" y="190" class="arch-label">deploy dashboard/</text>
+
+        <line x1="700" y1="75" x2="758" y2="75" stroke="var(--amber-dim)" stroke-width="1.5" marker-end="url(#arrow-amber)" marker-start="url(#arrow-amber)" />
+        <text x="700" y="65" class="arch-label amber">live close-approach data</text>
+
+        <path d="M 610 220 Q 610 150 610 110" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow)" />
+        <text x="618" y="165" class="arch-label">fetch /predict/live</text>
+
+        <line x1="700" y1="255" x2="758" y2="255" stroke="var(--cyan-dim)" stroke-width="1.5" marker-end="url(#arrow)" />
+        <text x="712" y="245" class="arch-label">serves</text>
+
+        <!-- nodes -->
+        <g>
+          <rect x="40" y="40" width="160" height="70" rx="6" class="arch-box" />
+          <text x="120" y="70" class="arch-title">COLAB</text>
+          <text x="120" y="86" class="arch-sub">Train &amp; export model</text>
+        </g>
+
+        <g>
+          <rect x="280" y="40" width="160" height="70" rx="6" class="arch-box" />
+          <text x="360" y="70" class="arch-title">GITHUB</text>
+          <text x="360" y="86" class="arch-sub">Source of truth</text>
+        </g>
+
+        <g>
+          <rect x="520" y="40" width="180" height="70" rx="6" class="arch-box" />
+          <text x="610" y="66" class="arch-title">RENDER</text>
+          <text x="610" y="82" class="arch-sub">FastAPI + Random Forest</text>
+        </g>
+
+        <g>
+          <rect x="760" y="40" width="150" height="70" rx="6" class="arch-box amber" />
+          <text x="835" y="66" class="arch-title amber">JPL SBDB</text>
+          <text x="835" y="82" class="arch-sub">Close-approach API</text>
+        </g>
+
+        <g>
+          <rect x="520" y="220" width="180" height="70" rx="6" class="arch-box" />
+          <text x="610" y="250" class="arch-title">VERCEL</text>
+          <text x="610" y="266" class="arch-sub">This dashboard</text>
+        </g>
+
+        <g>
+          <rect x="760" y="220" width="150" height="70" rx="6" class="arch-box" />
+          <text x="835" y="250" class="arch-title">BROWSER</text>
+          <text x="835" y="266" class="arch-sub">You, right now</text>
+        </g>
+      </svg>
+    </div>
+    <p class="note">Training happens once, offline, in Colab. From there, GitHub is the single source of truth that both Render (the prediction API) and Vercel (this dashboard) deploy from independently. At runtime, the dashboard never talks to the model directly — it calls Render over HTTP, exactly like any external client would, which is what proves the API genuinely works standalone.</p>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Team</h2>
+      <span class="tag">GROUP 5</span>
+    </div>
+    <div class="card-grid">
+      <div class="metric-card">
+        <span class="label">MOHAMMED</span>
+        <span class="value" style="font-size:14px; color:var(--text);">Deployment &amp; Live Data</span>
+        <span class="sub">FastAPI · Render · Vercel · JPL integration</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">[NAME]</span>
+        <span class="value" style="font-size:14px; color:var(--text);">[Role]</span>
+        <span class="sub">[What they worked on]</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">[NAME]</span>
+        <span class="value" style="font-size:14px; color:var(--text);">[Role]</span>
+        <span class="sub">[What they worked on]</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">[NAME]</span>
+        <span class="value" style="font-size:14px; color:var(--text);">[Role]</span>
+        <span class="sub">[What they worked on]</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">[NAME]</span>
+        <span class="value" style="font-size:14px; color:var(--text);">[Role]</span>
+        <span class="sub">[What they worked on]</span>
+      </div>
+    </div>
+    <p class="note">Fill in your teammates' names and roles above — swap the <code>[NAME]</code> / <code>[Role]</code> placeholders in <code>about.html</code>.</p>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Scan to Open</h2>
+      <span class="tag">LIVE URL</span>
+    </div>
+    <div class="panel" style="display:flex; align-items:center; gap:24px; flex-wrap:wrap;">
+      <img src="assets/qr-code.png" alt="QR code linking to the live dashboard" style="width:120px; height:120px; border-radius:6px;" />
+      <div>
+        <p class="note" style="margin-top:0;">Scan to open this dashboard on your phone — same QR code as the one on the presentation slide.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>MODEL: Random Forest (scikit-learn) · DATA: JPL SBDB Close-Approach API<br/>Built for Bootcamp Demo Day — Group 5</p>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <img src="assets/qr-code.png" alt="QR code linking to the live dashboard" style="width:44px; height:44px; border-radius:4px;" />
+    <span style="font-family:var(--font-mono); font-size:9px; color:var(--muted);">SCAN TO<br/>OPEN LIVE</span>
+  </div>
+</footer>
+
+<style>
+  .arch-box {
+    fill: var(--panel);
+    stroke: var(--panel-border);
+    stroke-width: 1.5;
+  }
+  .arch-box.amber { stroke: var(--amber-dim); }
+  .arch-title {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--text);
+    text-anchor: middle;
+  }
+  .arch-title.amber { fill: var(--amber); }
+  .arch-sub {
+    font-family: var(--font-body);
+    font-size: 9px;
+    fill: var(--muted);
+    text-anchor: middle;
+  }
+  .arch-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    fill: var(--muted);
+  }
+  .arch-label.amber { fill: var(--amber); }
+</style>
+
+</body>
+</html>
