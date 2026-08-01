@@ -145,6 +145,8 @@
   }
   .switch input:checked + .slider { background: var(--amber-dim); }
   .switch input:checked + .slider::before { transform: translateX(16px); }
+  .switch input:disabled + .slider { opacity: 0.5; cursor: wait; }
+  .data-toggle-wrap:has(input:disabled) { cursor: wait; }
   #live-dot.test { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
 
   .ctrl-btn {
@@ -444,7 +446,6 @@
     HAZARD PREDICTOR
   </div>
   <nav class="tabs">
-    <a href="index.html" class="active">LIVE TRACKER</a>
     <a href="eda.html">01 EDA</a>
     <a href="imbalance.html">02 IMBALANCE</a>
     <a href="results.html">03 RESULTS</a>
@@ -1103,17 +1104,31 @@ function applyDataset(data, isTest) {
   renderMap(asteroids);
 }
 
+let isLoadingData = false;
+
 async function loadData() {
+  if (isLoadingData) return; // prevent overlapping fetches if toggled rapidly
+  isLoadingData = true;
+  dataToggle.disabled = true;
+
   liveDot.classList.remove('error');
   liveDot.classList.toggle('test', dataMode === 'test');
 
   if (dataMode === 'test') {
-    headerStatus.textContent = 'LOADING TEST DATA…';
     applyDataset(TEST_DATA, true);
+    isLoadingData = false;
+    dataToggle.disabled = false;
     return;
   }
 
-  headerStatus.textContent = 'ACQUIRING SIGNAL…';
+  // Show an immediate loading state — without this, switching back to LIVE
+  // while Render's free tier is waking from idle looks like nothing happened,
+  // since the old data stays on screen until the fetch resolves.
+  tableRegion.innerHTML = `
+    <div class="state-panel">
+      <div class="spinner"></div>
+      Establishing uplink to JPL / model API…
+    </div>`;
 
   try {
     const res = await fetch(`${API_BASE}/predict/live`);
@@ -1122,7 +1137,6 @@ async function loadData() {
     applyDataset(data, false);
   } catch (err) {
     liveDot.classList.add('error');
-    headerStatus.textContent = 'SIGNAL LOST';
     tableRegion.innerHTML = `
       <div class="state-panel">
         Uplink to the model API failed — it may be waking from idle (free-tier hosting sleeps after inactivity, first request can take up to a minute).
@@ -1138,6 +1152,9 @@ async function loadData() {
       labelTest.classList.add('active');
       loadData();
     });
+  } finally {
+    isLoadingData = false;
+    dataToggle.disabled = false;
   }
 }
 
