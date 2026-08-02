@@ -152,45 +152,6 @@
     <p class="note">Lowering the threshold from 0.50 to 0.30 pushes <strong>hazard recall from 55% to 74%</strong> — catching far more real hazards — at the cost of more false alarms and 3.4 points of overall accuracy. F1 barely moves, which means this isn't a free win, it's a genuine tradeoff. For a safety-first use case, catching more real threats may be worth more than a slightly higher accuracy number.</p>
   </section>
 
-  <section class="block">
-    <div class="section-head">
-      <h2>Pipeline — What's Next</h2>
-      <span class="tag">TRACKED IMPROVEMENTS</span>
-    </div>
-    <div class="panel">
-      <div class="pipeline-list">
-        <div class="pipeline-item">
-          <span class="pipeline-status todo">TODO</span>
-          <div class="pipeline-body">
-            <div class="title">Deploy the tuned model</div>
-            <div class="desc">Swap the live model for the properly-tuned Random Forest (91.46%) — a small, confirmed improvement over the current baseline (91.34%).</div>
-          </div>
-        </div>
-        <div class="pipeline-item">
-          <span class="pipeline-status todo">TODO</span>
-          <div class="pipeline-body">
-            <div class="title">Consider a lower decision threshold in production</div>
-            <div class="desc">Deploying at 0.40 instead of the default 0.50 would catch meaningfully more real hazards (64% vs 55% recall) for a modest accuracy cost — worth a team discussion on priorities.</div>
-          </div>
-        </div>
-        <div class="pipeline-item">
-          <span class="pipeline-status done">DONE</span>
-          <div class="pipeline-body">
-            <div class="title">Tune on the full training set, not just a subsample</div>
-            <div class="desc">Hyperparameter search now uses a 40k subsample only to find good settings quickly, then retrains on the full 131k balanced set — the fix that made tuning actually pay off this time.</div>
-          </div>
-        </div>
-        <div class="pipeline-item">
-          <span class="pipeline-status done">DONE</span>
-          <div class="pipeline-body">
-            <div class="title">Live deployment with real-time data</div>
-            <div class="desc">Model served via FastAPI on Render, pulling live close-approach data from JPL's SBDB API — see the Live Tracker page.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
 </main>
 
 <div class="chapter-nav">
