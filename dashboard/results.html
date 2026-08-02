@@ -16,7 +16,7 @@
 <header>
   <div class="wordmark">
     <span class="dot"></span>
-    NEO HAZARD PREDICTOR
+    HAZARD PREDICTOR
   </div>
   <nav class="tabs">
     <a href="index.html">LIVE TRACKER</a>
@@ -32,8 +32,8 @@
 <div class="page-hero">
   <span class="chapter-badge">CHAPTER 03 / 04</span>
   <span class="eyebrow">MODEL EVALUATION</span>
-  <h1>Five algorithms, one clear winner.</h1>
-  <p class="page-sub">Every model trained on the same SMOTE-balanced, scaled split and evaluated on the same untouched 18,168-sample test set — a like-for-like comparison.</p>
+  <h1>Five models, one clear winner.</h1>
+  <p class="page-sub">Same data, same split, same test set — a fair comparison.</p>
 </div>
 
 <main>
@@ -63,18 +63,18 @@
             <td class="num">91.29%</td>
           </tr>
           <tr>
+            <td>Decision Tree</td>
+            <td class="num">90.06%</td>
+            <td class="num">90.52%</td>
+            <td class="num">90.06%</td>
+            <td class="num">90.28%</td>
+          </tr>
+          <tr>
             <td>XGBoost</td>
             <td class="num">86.66%</td>
             <td class="num">90.42%</td>
             <td class="num">86.66%</td>
             <td class="num">88.09%</td>
-          </tr>
-          <tr>
-            <td>Decision Tree</td>
-            <td class="num">84.85%</td>
-            <td class="num">86.49%</td>
-            <td class="num">84.85%</td>
-            <td class="num">85.61%</td>
           </tr>
           <tr>
             <td>K-Nearest Neighbors</td>
@@ -93,50 +93,49 @@
         </tbody>
       </table>
     </div>
-    <p class="note"><strong>Random Forest</strong> won outright on accuracy and F1, and is the model actually deployed behind the live tracker. Notice KNN and GaussianNB post <em>higher precision</em> than Random Forest but far lower recall — they're more conservative, missing more real hazardous objects to avoid false alarms. For a hazard-detection task, recall matters: a missed hazardous object is a worse failure than a false alarm, which is part of why Random Forest's balance of the two made it the right choice, not just its top-line accuracy.</p>
+    <p class="note"><strong>Random Forest wins</strong> — best accuracy, best F1, and it's what's deployed. KNN and GaussianNB score higher on precision but much lower on recall: they play it safe and miss more real hazards. For this problem, a missed hazard is worse than a false alarm — recall matters.</p>
   </section>
 
   <section class="block">
     <div class="section-head">
-      <h2>Feature Importance</h2>
-      <span class="tag">TUNED RF · GINI IMPORTANCE</span>
+      <h2>What The Model Actually Looks At</h2>
+      <span class="tag">FEATURE IMPORTANCE</span>
     </div>
     <div class="panel">
       <div class="feat-row">
-        <span class="feat-name">est_diameter_max</span>
-        <div class="feat-track"><div class="feat-fill" data-w="33.6"></div></div>
-        <span class="feat-val">33.6%</span>
+        <span class="feat-name">est_diameter_min</span>
+        <div class="feat-track"><div class="feat-fill" data-w="31.3"></div></div>
+        <span class="feat-val">31.3%</span>
       </div>
       <div class="feat-row">
-        <span class="feat-name">est_diameter_min</span>
-        <div class="feat-track"><div class="feat-fill" data-w="33.3"></div></div>
-        <span class="feat-val">33.3%</span>
+        <span class="feat-name">est_diameter_max</span>
+        <div class="feat-track"><div class="feat-fill" data-w="29.5"></div></div>
+        <span class="feat-val">29.5%</span>
       </div>
       <div class="feat-row">
         <span class="feat-name">absolute_magnitude</span>
-        <div class="feat-track"><div class="feat-fill" data-w="21.6"></div></div>
-        <span class="feat-val">21.6%</span>
+        <div class="feat-track"><div class="feat-fill" data-w="24.6"></div></div>
+        <span class="feat-val">24.6%</span>
       </div>
       <div class="feat-row">
         <span class="feat-name">relative_velocity</span>
-        <div class="feat-track"><div class="feat-fill" data-w="6.6"></div></div>
-        <span class="feat-val">6.6%</span>
+        <div class="feat-track"><div class="feat-fill" data-w="8.0"></div></div>
+        <span class="feat-val">8.0%</span>
       </div>
       <div class="feat-row">
         <span class="feat-name">miss_distance</span>
-        <div class="feat-track"><div class="feat-fill" data-w="4.9"></div></div>
-        <span class="feat-val">4.9%</span>
+        <div class="feat-track"><div class="feat-fill" data-w="6.6"></div></div>
+        <span class="feat-val">6.6%</span>
       </div>
     </div>
-    <p class="note">Size dominates — diameter and magnitude (which is itself a size proxy) together account for ~89% of the model's decision-making. This confirms the EDA finding directly: velocity and distance refine the prediction, but an object's physical size is what the model leans on most.</p>
+    <p class="note"><strong>Size decides almost everything.</strong> Diameter and magnitude (a size proxy) together drive 85% of every prediction. Velocity and distance barely move the needle.</p>
   </section>
 
   <section class="block">
     <div class="section-head">
-      <h2>Diagnostic Deep-Dive</h2>
-      <span class="tag">TUNED VARIANT · EXPERIMENTAL</span>
+      <h2>How Well It Actually Works</h2>
+      <span class="tag">TUNED RF · 91.46% — NEARLY IDENTICAL TO DEPLOYED</span>
     </div>
-    <p class="note" style="margin-top:0; margin-bottom:20px;">The confusion matrix, ROC curve, and cross-validation below were run on a hyperparameter-tuned Random Forest explored during experimentation (GridSearchCV) — the same algorithm family as the deployed model, evaluated in more depth. See the <a href="enhancements.html" style="color:var(--cyan);">Enhancements</a> page for how this variant compares to what's actually live.</p>
 
     <div class="panel" style="margin-bottom: 20px;">
       <h3 style="font-family:var(--font-display); font-size:14px; margin-bottom:16px; font-weight:600;">Confusion Matrix</h3>
@@ -146,33 +145,32 @@
         <div class="cm-axis">PRED: HAZARD</div>
 
         <div class="cm-axis">ACTUAL: SAFE</div>
-        <div class="cm-cell value strong"><span class="n">14,268</span><span class="lbl">TRUE NEGATIVE</span></div>
-        <div class="cm-cell value wrong"><span class="n">2,132</span><span class="lbl">FALSE POSITIVE</span></div>
+        <div class="cm-cell value strong"><span class="n">15,637</span><span class="lbl">TRUE NEGATIVE</span></div>
+        <div class="cm-cell value wrong"><span class="n">763</span><span class="lbl">FALSE POSITIVE</span></div>
 
         <div class="cm-axis">ACTUAL: HAZARD</div>
-        <div class="cm-cell value wrong"><span class="n">442</span><span class="lbl">FALSE NEGATIVE</span></div>
-        <div class="cm-cell value strong"><span class="n">1,326</span><span class="lbl">TRUE POSITIVE</span></div>
+        <div class="cm-cell value wrong"><span class="n">788</span><span class="lbl">FALSE NEGATIVE</span></div>
+        <div class="cm-cell value strong"><span class="n">980</span><span class="lbl">TRUE POSITIVE</span></div>
       </div>
-      <p class="note">Of 1,768 genuinely hazardous objects in the test set, 1,326 were correctly flagged (75% recall on the hazard class) — 442 were missed. Of the objects flagged as hazardous, 39% actually were, meaning most alerts are false positives. This is the classic precision/recall tradeoff of a heavily imbalanced problem: tuned toward not missing threats, at the cost of more false alarms.</p>
+      <p class="note">Of 1,768 real hazardous objects, <strong>980 were caught</strong> — 788 were missed. Of everything flagged hazardous, 56% actually were. The Enhancements page shows how adjusting the decision threshold trades some accuracy for catching more real hazards.</p>
     </div>
 
     <div class="card-grid" style="margin-bottom: 20px;">
       <div class="metric-card">
         <span class="label">ROC AUC</span>
-        <span class="value">0.923</span>
+        <span class="value">0.936</span>
       </div>
       <div class="metric-card">
         <span class="label">5-FOLD CV MEAN</span>
-        <span class="value">91.1%</span>
-        <span class="sub">± 3.3%</span>
+        <span class="value">89.81%</span>
+        <span class="sub">± 0.35%</span>
       </div>
       <div class="metric-card">
-        <span class="label">TEST ACCURACY</span>
-        <span class="value amber">86.0%</span>
-        <span class="sub">this tuned variant</span>
+        <span class="label">TUNED TEST ACCURACY</span>
+        <span class="value">91.46%</span>
       </div>
     </div>
-    <p class="note">An AUC of 0.923 indicates strong separability between the two classes overall. The cross-validation mean (91.1%) closely tracks the deployed model's test accuracy (91.3%) — a good sign the result isn't a lucky split. One fold dipped to 84.5%, worth keeping in mind as a sign of some sensitivity to which data lands in training vs. validation.</p>
+    <p class="note">A tight standard deviation (±0.35%, down from a much wider spread in earlier testing) means this result is stable, not a lucky split — SMOTE and scaling were applied fresh inside each cross-validation fold to avoid any leakage between them.</p>
   </section>
 
 </main>
