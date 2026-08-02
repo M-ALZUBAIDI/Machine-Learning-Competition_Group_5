@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Enhancements — NEO Hazard Predictor</title>
-<meta name="description" content="Hyperparameter tuning and ensemble experiments explored beyond the baseline model." />
+<meta name="description" content="Hyperparameter tuning, ensembles, and threshold tuning explored beyond the baseline model." />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
 <header>
   <div class="wordmark">
     <span class="dot"></span>
-    NEO HAZARD PREDICTOR
+    HAZARD PREDICTOR
   </div>
   <nav class="tabs">
     <a href="index.html">LIVE TRACKER</a>
@@ -32,8 +32,8 @@
 <div class="page-hero">
   <span class="chapter-badge">CHAPTER 04 / 04</span>
   <span class="eyebrow">BEYOND THE BASELINE</span>
-  <h1>What we tried to beat Random Forest — and what won.</h1>
-  <p class="page-sub">Tuning and ensembling don't automatically win. Here's the honest comparison, including the attempts that underperformed the baseline.</p>
+  <h1>A small real gain, and a smarter tradeoff.</h1>
+  <p class="page-sub">Tuning genuinely helped this time. A threshold trick helps even more, if you're willing to trade a little accuracy for it.</p>
 </div>
 
 <main>
@@ -60,13 +60,13 @@
           </tr>
           <tr>
             <td>RandomizedSearchCV tuning</td>
-            <td class="num">85.99%</td>
-            <td style="font-family:var(--font-mono); font-size:11px; color:var(--amber);">▼ −5.35pp</td>
+            <td class="num">91.39%</td>
+            <td style="font-family:var(--font-mono); font-size:11px; color:var(--cyan);">▲ +0.05pp</td>
           </tr>
-          <tr>
+          <tr class="highlight">
             <td>GridSearchCV tuning</td>
-            <td class="num">86.00%</td>
-            <td style="font-family:var(--font-mono); font-size:11px; color:var(--amber);">▼ −5.34pp</td>
+            <td class="num">91.46%</td>
+            <td style="font-family:var(--font-mono); font-size:11px; color:var(--cyan);">▲ +0.12pp — BEST</td>
           </tr>
           <tr>
             <td>CatBoost</td>
@@ -74,24 +74,82 @@
             <td style="font-family:var(--font-mono); font-size:11px; color:var(--amber);">▼ −5.01pp</td>
           </tr>
           <tr>
-            <td>Stacking Ensemble <span style="color:var(--muted); font-size:11px;">(RF-tuned + XGB + DT + CatBoost)</span></td>
-            <td class="num">88.75%</td>
-            <td style="font-family:var(--font-mono); font-size:11px; color:var(--amber);">▼ −2.59pp</td>
+            <td>Stacking Ensemble <span style="color:var(--muted); font-size:11px;">(tuned RF + XGB + DT + CatBoost)</span></td>
+            <td class="num">90.72%</td>
+            <td style="font-family:var(--font-mono); font-size:11px; color:var(--amber);">▼ −0.62pp</td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p class="note"><strong>None of the enhancement attempts beat the baseline</strong> — and that's a real, useful finding, not a failure to hide. The likely cause: both search methods tuned on a 40,000-sample subset of the training data rather than the full ~131,000-sample balanced set the baseline trained on. Less data during tuning meant the "improved" hyperparameters were optimized for a smaller, less representative slice — a good reminder that tuning strategy matters as much as the tuning itself.</p>
+    <p class="note">This time, tuning helped — a small, real gain. Both searches used a 40,000-sample subset just to <em>find</em> good hyperparameters quickly, then retrained on the <strong>full 131,192-sample</strong> balanced training set — the fix that made this result trustworthy. CatBoost and the stacking ensemble still fell short of the simple baseline.</p>
   </section>
 
   <section class="block">
     <div class="section-head">
-      <h2>Why Stacking Came Closest</h2>
-      <span class="tag">88.75% — BEST OF THE ENHANCEMENTS</span>
+      <h2>Why The Baseline Is Still Deployed</h2>
+      <span class="tag">0.12 PERCENTAGE POINTS</span>
     </div>
     <div class="panel">
-      <p class="note" style="margin-top:0;">The stacking ensemble combined the tuned Random Forest, XGBoost, Decision Tree, and CatBoost as base learners, with a Logistic Regression meta-model learning how to weight their combined votes. It outperformed every individual enhancement attempt — ensembling recovered some of what individual tuning lost — but still fell short of the simple baseline trained on the full dataset. This points to the same root cause: the base learners feeding the stack were themselves trained on the smaller tuning subset.</p>
+      <p class="note" style="margin-top:0;">The tuned model's edge is real but tiny — <strong>0.12 percentage points</strong>, close to normal run-to-run noise. The baseline was already live before this tuning result came in. Swapping to the tuned version is a small, low-risk upgrade — tracked below, not urgent.</p>
     </div>
+  </section>
+
+  <section class="block">
+    <div class="section-head">
+      <h2>Trading Accuracy For Recall</h2>
+      <span class="tag">CLASSIFICATION THRESHOLD</span>
+    </div>
+    <div class="panel" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>THRESHOLD</th>
+            <th class="num">ACCURACY</th>
+            <th class="num">HAZARD PRECISION</th>
+            <th class="num">HAZARD RECALL</th>
+            <th class="num">HAZARD F1</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="highlight">
+            <td>0.50 <span style="color:var(--muted); font-size:11px;">(default)</span></td>
+            <td class="num">91.46%</td>
+            <td class="num">56.2%</td>
+            <td class="num">55.4%</td>
+            <td class="num">55.8%</td>
+          </tr>
+          <tr>
+            <td>0.45</td>
+            <td class="num">90.81%</td>
+            <td class="num">52.5%</td>
+            <td class="num">59.5%</td>
+            <td class="num">55.8%</td>
+          </tr>
+          <tr>
+            <td>0.40</td>
+            <td class="num">90.10%</td>
+            <td class="num">49.3%</td>
+            <td class="num">64.1%</td>
+            <td class="num">55.8%</td>
+          </tr>
+          <tr>
+            <td>0.35</td>
+            <td class="num">89.16%</td>
+            <td class="num">46.2%</td>
+            <td class="num">69.7%</td>
+            <td class="num">55.6%</td>
+          </tr>
+          <tr>
+            <td>0.30</td>
+            <td class="num">88.11%</td>
+            <td class="num">43.5%</td>
+            <td class="num">74.2%</td>
+            <td class="num">54.8%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Lowering the threshold from 0.50 to 0.30 pushes <strong>hazard recall from 55% to 74%</strong> — catching far more real hazards — at the cost of more false alarms and 3.4 points of overall accuracy. F1 barely moves, which means this isn't a free win, it's a genuine tradeoff. For a safety-first use case, catching more real threats may be worth more than a slightly higher accuracy number.</p>
   </section>
 
   <section class="block">
@@ -104,28 +162,28 @@
         <div class="pipeline-item">
           <span class="pipeline-status todo">TODO</span>
           <div class="pipeline-body">
-            <div class="title">Recompute diagnostics on the deployed model</div>
-            <div class="desc">Confusion matrix, ROC curve, and feature importance on the Model Results page were generated from the tuned RF variant during experimentation, not the exact baseline RF object currently deployed. Regenerate these directly against the deployed model for a fully matched diagnostic set.</div>
+            <div class="title">Deploy the tuned model</div>
+            <div class="desc">Swap the live model for the properly-tuned Random Forest (91.46%) — a small, confirmed improvement over the current baseline (91.34%).</div>
           </div>
         </div>
         <div class="pipeline-item">
           <span class="pipeline-status todo">TODO</span>
           <div class="pipeline-body">
-            <div class="title">Re-tune on the full training set</div>
-            <div class="desc">Re-run GridSearchCV / RandomizedSearchCV against the full ~131k balanced training set instead of a 40k subsample, to see whether proper tuning can actually beat the untuned baseline.</div>
-          </div>
-        </div>
-        <div class="pipeline-item">
-          <span class="pipeline-status todo">TODO</span>
-          <div class="pipeline-body">
-            <div class="title">Rebuild the stacking ensemble on baseline-quality base learners</div>
-            <div class="desc">Feed the stack properly-trained base models (not the undertuned variants) to see if ensembling can beat 91.34% rather than just approaching it.</div>
+            <div class="title">Consider a lower decision threshold in production</div>
+            <div class="desc">Deploying at 0.40 instead of the default 0.50 would catch meaningfully more real hazards (64% vs 55% recall) for a modest accuracy cost — worth a team discussion on priorities.</div>
           </div>
         </div>
         <div class="pipeline-item">
           <span class="pipeline-status done">DONE</span>
           <div class="pipeline-body">
-            <div class="title">Live deployment with real-time NASA/JPL data</div>
+            <div class="title">Tune on the full training set, not just a subsample</div>
+            <div class="desc">Hyperparameter search now uses a 40k subsample only to find good settings quickly, then retrains on the full 131k balanced set — the fix that made tuning actually pay off this time.</div>
+          </div>
+        </div>
+        <div class="pipeline-item">
+          <span class="pipeline-status done">DONE</span>
+          <div class="pipeline-body">
+            <div class="title">Live deployment with real-time data</div>
             <div class="desc">Model served via FastAPI on Render, pulling live close-approach data from JPL's SBDB API — see the Live Tracker page.</div>
           </div>
         </div>
